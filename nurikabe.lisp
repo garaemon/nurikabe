@@ -1,5 +1,5 @@
 ;;================================================
-;; nurarihyon.lisp
+;; nurikabe.lisp
 ;;
 ;; written by R.Ueda (garaemon)
 ;;================================================
@@ -9,7 +9,7 @@
 
 
 (defpackage #:nurarihyon
-  (:use #:common-lisp #:roll/util)
+  (:use #:common-lisp #:chimi)
   (:export #:*manager* #:<manager>
            #:init-gui
            #:flush
