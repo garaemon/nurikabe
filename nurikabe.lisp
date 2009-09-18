@@ -3,12 +3,10 @@
 ;;
 ;; written by R.Ueda (garaemon)
 ;;================================================
-
 (declaim (optimize (debug 3)
 		   (safety 3)))
 
-
-(defpackage #:nurarihyon
+(defpackage #:nurikabe
   (:use #:common-lisp #:chimi)
   (:export #:*manager* #:<manager>
            #:init-gui
@@ -35,3 +33,10 @@
            #:make-packing-box
            #:line-up
            ))
+
+(in-package #:nurikabe)
+
+;; generics
+(defgeneric flush (manager))
+(defgeneric event-loop (manager))
+(defgeneric xlib-window->window (manager win))
