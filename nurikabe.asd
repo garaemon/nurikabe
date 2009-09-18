@@ -1,5 +1,7 @@
 (defsystem nurikabe
-    :depends-on (chimi clx cl-vectors)
+    :depends-on (chimi clx cl-vectors
+		 cl-aa-misc cl-vectors zpb-ttf
+		 cl-paths-ttf iterate)
     :components
     ((:file "gui")
 ;;      (:file "classes"
