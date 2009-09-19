@@ -36,8 +36,8 @@
 
 (defmethod init-gl ((canvas <object-viewer-gl-canvas>))
   (glx:make-current                     ;cannot call twice... why?
-   (nurikabe::xwindow-of canvas)
-   (nurikabe::xwindow-of/gui::gl-context-of canvas))
+   (xwindow-of canvas)
+   (gl-context-of canvas))
   (gl:ortho 0.0d0 1.0d0 0.0d0 1.0d0 -1.0d0 1.0d0)
   (gl:clear-color 0.0s0 0.0s0 0.0s0 0.0s0)
   )

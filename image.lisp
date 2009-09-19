@@ -4,9 +4,10 @@
 ;;                               written by R.Ueda(garaemon@gmail.net)
 ;;====================================================================
 
-(declaim (optimize (debug 3) (safety 3)))
+(declaim (optimize (debug 3)
+		   (safety 3)))
 
-(in-package #:chimi)
+(in-package #:nurikabe)
 
 (defvar *font-paths*
   #+:darwin

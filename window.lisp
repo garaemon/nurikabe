@@ -22,6 +22,8 @@
 
 (defmethod map-window ((window <window>))
   "Mapping window.
+   'map' means 'show window'.
+  
    This method is a wrapper of xlib:map-window for <window> class."
   (xlib:map-window (xwindow-of window)))
 
