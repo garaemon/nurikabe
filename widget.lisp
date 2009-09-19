@@ -11,7 +11,7 @@
   "render widget in window.
 
    You have to over-write this method in subclasses of <widget>."
-  (log-format widget :warning "render-widget is called at ~A" widget))
+  (log-format widget "render-widget is called at ~A" widget))
 
 (defun make-widget (class
                     &rest
@@ -54,7 +54,7 @@
     ;; parentへwidgetを追加
     (add-widget parent widget)
     (if map (map-window widget))
-    (log-format widget :info "widget ~A is created" widget)
+    (log-format widget "widget ~A is created" widget)
     widget))
     
 

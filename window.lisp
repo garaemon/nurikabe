@@ -1,8 +1,8 @@
-;;====================================================================
+;;========================================
 ;; window.lisp
 ;; 
-;;                               written by R.Ueda(garaemon@gmail.net)
-;;====================================================================
+;;  written by R.Ueda(garaemon@gmail.net)
+;;========================================
 (declaim (optimize (debug 3) (safety 3)))
 
 (in-package #:nurikabe)
@@ -18,17 +18,27 @@
   (apply #'log-format (manager-of window) str args))
 
 (defmethod clear-window ((window <window>))
-  (xlib:clear-area (xwindow-of window)))
+  (xlib:clear-area
+   (xwindow-of window)
+   :x 0 :y 0
+   :width (width-of window)
+   :height (height-of window)))
 
 (defmethod map-window ((window <window>))
-  "Mapping window.
+  "Mapping a window.
    'map' means 'show window'.
   
    This method is a wrapper of xlib:map-window for <window> class."
   (xlib:map-window (xwindow-of window)))
 
 (defmethod map-widgets ((window <window>))
-  (xlib:map-subwindows (xwindow-of window)))
+  "Mapping the widgets of window."
+  ;;(xlib:map-subwindows (xwindow-of window)))
+  (iterate:iter
+   (iterate:for w in (widgets-of window))
+   (map-window w)
+   )
+  )
   
 (defmethod unmap-window ((window <window>))
   "Unmapping window.
@@ -88,7 +98,7 @@
     (add-window manager ret)
     (map-window ret)
     (put-image ret (image-of ret) :flush t)
-    (log-format ret :info "window ~A is created" ret)
+    (log-format ret  "window ~A is created" ret)
     ret))
 
 (defmethod put-image ((window <window>)
@@ -173,10 +183,11 @@
     (setf (windows-of (manager-of win))
           (remove-if #'(lambda (x) (member x widgets))
                      (windows-of (manager-of win))))
-    (log-format win :info "delete widgets of ~A" win)
+    (log-format win "delete widgets of ~A" win)
     (when flush
       (flush (manager-of win))
-      (nurikabe::xflush))
+      ;;(nurikabe::xflush))
+      )
     t))
 
 (defmethod render-widgets ((win <window>) &key (flush t))
@@ -185,7 +196,7 @@
   The order of widgets, slot of <window>,
   is reversed, so we have to render the widgets in reversed order."
   (dolist (w (reverse (widgets-of win)))
-    (log-format win :info ":render-widget of ~A is called" w)
+    (log-format win ":render-widget of ~A is called" w)
     (render-widget w)))
 
 (defmethod find-widget-region ((win <window>) pos)

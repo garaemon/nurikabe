@@ -9,7 +9,7 @@
 
 (in-package :nurikabe)
 
-(eval-when (:compile-toplevel)
+;;(eval-when (:compile-toplevel)
   (defvar *color-table*
     (list (CONS :SNOW  #(254 249 249))
           (CONS :GHOSTWHITE  #(247 247 254))
@@ -925,7 +925,7 @@
           (CONS   :INTENSITY-254 #(254 254 254))
           (CONS   :INTENSITY-255 #(255 255 255))
           ))
-  )
+;;  )
 
 (defun symbol->rgb-vector (sym)
   "combarts keyword to rgb vector."

@@ -49,11 +49,11 @@
              (> (width-of widget) x)
              (> (height-of widget) y))
         (progn
-          (log-format widget :info
+          (log-format widget
                       "inside of ~A" widget)
           t)
         (progn
-          (log-format widget :info
+          (log-format widget
                       "outside of ~A" widget)
           nil))))
 
@@ -91,7 +91,6 @@
 
 (defmethod button-press-callback ((widget <click-button-widget>) x y)
   (log-format widget
-              :info
               ":button-press-callback (~A, ~A) is called in <click-button-widget>" x y)
   (when (inside-button-region-p widget (list x y))
     (unless (button-state-of widget)
@@ -103,7 +102,6 @@
 
 (defmethod button-release-callback ((widget <click-button-widget>) x y)
   (log-format widget
-              :info
               ":button-release-callback (~A, ~A) is called in <click-button-widget>" x y)
   (if (inside-button-region-p widget (list x y))
       (setf (button-state-of widget)

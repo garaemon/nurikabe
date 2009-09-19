@@ -98,12 +98,11 @@
 
 (defmethod button-press-callback ((widget <toggle-button-widget>) x y)
   (log-format widget
-              :info
               ":button-press-callback (~A, ~A) is called in <toggle-button-widget>" x y)
   ;; x, yはローカル座標になってる
   (if (inside-button-region-p widget (list x y))
       (progn
-        (log-format widget :info "inside button region")
+        (log-format widget "inside button region")
         (toggle-button-state widget)
         ))
   t)
