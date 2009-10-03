@@ -1,5 +1,7 @@
 ;;========================================
 ;; window.lisp
+;;
+;; window.lisp provides <window> class and its methods.
 ;; 
 ;;  written by R.Ueda(garaemon@gmail.net)
 ;;========================================
@@ -33,6 +35,8 @@
 
 (defmethod map-widgets ((window <window>))
   "Mapping the widgets of window."
+  ;; map-subwindows of clx has some bugs, i think.
+  ;; so i substitute xlib:map-window for xlib:map-subwindows
   ;;(xlib:map-subwindows (xwindow-of window)))
   (iterate:iter
    (iterate:for w in (widgets-of window))
@@ -216,4 +220,10 @@
   t)
 
 (defmethod button-release-callback ((win <window>) x y)
+  t)
+
+(defmethod motion-notify-callback ((win <window>) x y code)
+  t)
+
+(defmethod configure-notify-callback ((win <window>) x y width height)
   t)

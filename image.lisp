@@ -49,9 +49,9 @@
           (t
            (error "You have to set width,height or content")))
     (setf (depth-of ret) 3)
-    (setf (foreground-of ret) foreground) ;initialize fore/background color
-    (setf (background-of ret) background)
-    (set-font ret font)                 ;initialize font loader
+    (setf (foreground-of ret) foreground) ;initialize foreground color
+    (setf (background-of ret) background) ;initialize background color
+    (set-font ret font)                   ;initialize font loader
     ret))
 
 (defmethod clear-image ((image <image>))
@@ -210,3 +210,20 @@
             (max-y (cdr (assoc :max-y bbox))))
         (cons (- max-x min-x) (- max-y min-y)))))
 
+(defmethod flat-content-of ((image <image>) &optional (to nil))
+  (let ((from (content-of image))
+        (width (width-of image))
+        (height (height-of image)))
+    (if (null to)
+        (setf to (make-array (* width height 3)
+                             :element-type '(unsigned-byte 8)
+                             :initial-element 0)))
+    (dotimes (i height)
+      (dotimes (j width)
+        (setf (aref to (+ (* (+ (* i width) j) 3) 0))
+                (aref from i j 2))
+          (setf (aref to (+ (* (+ (* i width) j) 3) 1))
+                (aref from i j 1))
+          (setf (aref to (+ (* (+ (* i width) j) 3) 2))
+                (aref from i j 0))))
+    to))

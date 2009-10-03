@@ -1,7 +1,8 @@
 (defsystem nurikabe
     :depends-on (chimi clx cl-vectors
 		 cl-aa-misc cl-vectors zpb-ttf
-		 cl-paths-ttf iterate)
+		 cl-paths-ttf iterate
+                 nurarihyon)
     :components ((:file "nurikabe")
 		 (:file "classes"
 			:depends-on ("nurikabe"))
@@ -20,6 +21,15 @@
 		 (:file "canvas"
                         :depends-on ("nurikabe" "classes" "manager" "color"))
 		 (:file "gl-canvas"
+                        :depends-on ("nurikabe" "classes" "manager" "color"
+                                     "canvas" "gl-wrapper"))
+                 (:file "gl-window"
+                        :depends-on ("nurikabe" "classes" "manager" "color"
+                                     "canvas" "gl-wrapper"))
+                 (:file "gl-light"
+                        :depends-on ("nurikabe" "classes" "manager" "color"
+                                     "canvas" "gl-wrapper"))
+                 (:file "gl-material"
                         :depends-on ("nurikabe" "classes" "manager" "color"
                                      "canvas" "gl-wrapper"))
 		 (:file "widget"
