@@ -20,24 +20,26 @@
   (apply #'log-format (manager-of window) str args))
 
 (defmethod clear-window ((window <window>))
-  (xlib:clear-area
+  (clyax::XClearArea
+   (display-of (manager-of window))
    (xwindow-of window)
-   :x 0 :y 0
-   :width (width-of window)
-   :height (height-of window)))
+   0 0
+   (width-of window)
+   (height-of window)
+   t)
+  )
 
 (defmethod map-window ((window <window>))
   "Mapping a window.
    'map' means 'show window'.
   
-   This method is a wrapper of xlib:map-window for <window> class."
-  (xlib:map-window (xwindow-of window)))
+   This method is a wrapper of map-window for <window> class."
+  (clyax::XMapWindow (display-of (manager-of window)) (xwindow-of window)))
 
 (defmethod map-widgets ((window <window>))
   "Mapping the widgets of window."
   ;; map-subwindows of clx has some bugs, i think.
-  ;; so i substitute xlib:map-window for xlib:map-subwindows
-  ;;(xlib:map-subwindows (xwindow-of window)))
+  ;; so i substitute map-window for map-subwindows
   (iterate:iter
    (iterate:for w in (widgets-of window))
    (map-window w)
@@ -46,8 +48,8 @@
   
 (defmethod unmap-window ((window <window>))
   "Unmapping window.
-   This method is a wrapper of xlib:unmap-window for <window> class."
-  (xlib:unmap-window (xwindow-of window)))
+   This method is a wrapper of unmap-window for <window> class."
+  (clyax::XUnmapWindow (display-of (manager-of window)) (xwindow-of window)))
 
 (defun make-window (&key
                     (window-class '<window>)
@@ -56,6 +58,7 @@
                     (height 200)
                     (x 100)
                     (y 100)
+                    (depth 24)
                     (manager *manager*)
                     (font "VeraMono.ttf")
                     (foreground :black)
@@ -81,17 +84,62 @@
            (error "width and heigt, or image is required")))
     (setf (x-of ret) x)
     (setf (y-of ret) y)
-    (setf (xwindow-of ret)
-          (xlib:create-window :parent (root-window-of manager)
-                              :x x :y y
-                              :width (width-of ret) :height (height-of ret)
-                              :event-mask (default-event-mask)))
-    (setf (gcontext-of ret) (xlib:create-gcontext
-                             :drawable (root-window-of manager)))
+    (with-foreign-objects
+     ((vi 'clyax::XVisualInfo)
+      (xattr 'clyax::XSetWindowAttributes))
+     ;; setup visual
+     (clyax::XMatchVisualInfo (display-of manager)
+                              (root-screen-of manager)
+                              depth
+                              clyax::DirectColor
+                              vi)
+     ;; setup attrib
+     ;; event-mask, colormap, background, override-redirect, attribmask
+     (setf (foreign-slot-value xattr
+                               'clyax::XSetWindowAttributes
+                               'clyax::event_mask)
+           (default-event-mask))
+     ;; VisualInfo -> Visual
+     (let ((vis (foreign-slot-value vi
+                                    'clyax::XVisualInfo
+                                    'clyax::visual)))
+       ;; colormap
+       (setf (foreign-slot-value xattr
+                                 'clyax::XSetWindowAttributes
+                                 'clyax::colormap)
+             (clyax::XCreateColormap
+              (display-of manager)
+              (root-window-of manager)
+              vis
+              clyax::AllocNone))
+       ;; override redirect
+       (setf (foreign-slot-value xattr
+                                 'clyax::XSetWindowAttributes
+                                 'clyax::override_redirect)
+             1)
+       (setf (xwindow-of ret)
+             (clyax::XCreateWindow
+              (display-of manager)         ;display
+              (root-window-of manager)     ;parent
+              x y                          ;x, y
+              width height                 ;width, height
+              2                            ;border width
+              clyax::CopyFromParent               ;depth
+              clyax::InputOutput                  ;class
+              vis
+              (default-attribute-mask)     ;attrib mask
+              xattr))))
+    ;; create gc
+    (setf (gcontext-of ret)
+          (clyax::XCreateGC (display-of manager)
+                            (root-window-of manager)
+                            0
+                            (cffi:null-pointer)))
     (setf (image-array-of ret)
-          (make-array (* (width-of ret) (height-of ret) 4)
-                      :element-type '(UNSIGNED-BYTE 8)
-                      :initial-element 0))
+          (make-array ;;(* (width-of ret) (height-of ret) 4)
+           (* width height 4)
+           :element-type '(UNSIGNED-BYTE 8)
+           :initial-element 0))
     (unless image
       (setf (image-of ret) (make-image :width width
                                        :height height
@@ -100,6 +148,10 @@
                                        :font font)))
     (xflush)
     (add-window manager ret)
+    (clyax::XSelectInput
+     (display-of manager)
+     (xwindow-of ret)
+     (default-event-mask))
     (map-window ret)
     (put-image ret (image-of ret) :flush t)
     (log-format ret  "window ~A is created" ret)
@@ -110,7 +162,7 @@
                       &key
                       (flush nil))
   "This method only set the image slot of window.
-   Do'not bother with xlib:put-image.
+   Do'not bother with put-image.
    If you want to draw image to the window, you just set :flush t or
    call flush method."
   (setf (image-of window) image)
@@ -143,34 +195,46 @@
   "In this flush-window method, image-array is copied from image and
    draw image to window.
 
-   we use xlib:put-image xlib:create-image, xlib:force-display-output here.
+   we use put-image create-image, force-display-output here.
    "
   (update-image-array window)           ;content of <image> -> image-array of <window>
-  (let ((image (xlib:create-image :data (image-array-of window)
-                                  :depth 24
-                                  :bits-per-pixel 32
-                                  :width (width-of window)
-                                  :height (height-of window)
-                                  :format :z-pixmap)))
-    (xlib:put-image (xwindow-of window)
-                    (gcontext-of window)
-                    image
-                    :x 0
-                    :y 0
-                    :src-x 0
-                    :src-y 0
-                    :width (width-of window)
-                    :height (height-of window))
-    (if clear
-        (clear-image (image-of window)))
-    t))
+  (with-foreign-object
+   (data :unsigned-char (* (width-of window)
+                           (height-of window)
+                           4))
+   ;; fill data
+   (fill-c-array (image-of window) data)
+   (let ((image (clyax::XCreateImage
+                 (display-of (manager-of window)) ;display
+                 (clyax::XDefaultVisual (display-of (manager-of window))
+                                        (root-screen-of (manager-of window)))
+                 24
+                 clyax::ZPixmap
+                 0
+                 data                    ;data(unsigned char*)
+                 (width-of window) (height-of window) ;width, height
+                 32                                   ;bits-per-pixel
+                 0)))                                 ;bytes-per-line
+     (clyax::XPutImage
+      (display-of (manager-of window))   ;display
+      (xwindow-of window)                ;drawable
+      (gcontext-of window)               ;gcontext-of
+      image                              ;ximage
+      0 0                                ;src x, y
+      0 0                                ;dest x. y
+      (width-of window) (height-of window))))
+  ;; destroy image?
+  (if clear
+      (clear-image (image-of window)))
+  t)
 
 (defmethod move ((win <window>) x y)
   "If you want to move window manually,
    you can use this method move.
    I think you have to call flush method in order to actually move the window."
-  (setf (xlib:drawable-x (xwindow-of win)) x)
-  (setf (xlib:drawable-y (xwindow-of win)) y)
+  (clyax::XMoveWindow (display-of (manager-of win))
+                      (xwindow-of win)
+                      x y)
   win)
 
 ;; for widget
@@ -190,7 +254,6 @@
     (log-format win "delete widgets of ~A" win)
     (when flush
       (flush (manager-of win))
-      ;;(nurikabe::xflush))
       )
     t))
 

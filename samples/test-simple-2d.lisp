@@ -1,6 +1,8 @@
 (require :nurikabe)
 
-(defvar *manager* (nurikabe:init-gui))
+(defvar *manager* (nurikabe:init-gui :loggingp t))
+;; (defvar *win* (nurikabe:make-gl-window :width 100 :height 100 :x 0 :y 0))
+
 (defvar *win* (nurikabe:make-window :width 300
                                     :height 200
                                     :background :white

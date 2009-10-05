@@ -33,14 +33,14 @@
    and open X11 display."
   (unless *manager*
     (setf *manager* (make-instance '<manager> :loggingp loggingp))
-    (setf (display-of *manager*) (xlib:open-display ""))
-    (setf (root-screen-of *manager*)
-	  (car (xlib:display-roots (display-of *manager*))))
+    (setf (display-of *manager*) (clyax:XOpenDisplay ""))
     (setf (root-window-of *manager*)
-	  (xlib:screen-root (root-screen-of *manager*)))
+          (clyax:XDefaultRootWindow (display-of *manager*)))
+    (setf (root-screen-of *manager*)
+          (clyax:XDefaultScreen (display-of *manager*)))
     (setf (logger-of *manager*)
 	  (chimi:make-logger :location "/tmp/nurikabe.log"))
-    (setf (event-thread-of *manager*)
+   (setf (event-thread-of *manager*)
 	  (chimi:make-thread
 	   (lambda ()
 	     (while t (event-loop *manager*)))))
@@ -51,7 +51,8 @@
 ;; 変換する.
 (defmethod xlib-window->window ((manager <manager>) win)
   "convert window of xwindow to <window> instance."
-  (find win (windows-of manager) :key #'xwindow-of))
+  (find (cffi:pointer-address win) (windows-of manager)
+        :key #'(lambda (x) (cffi:pointer-address (xwindow-of x)))))
 
 (defmacro with-xlib-window (params &rest bodies)
   "exec bodies if the window exists.
@@ -64,7 +65,9 @@
        (let ((,(car params) ,xwin))
            (if ,xwin
                (progn ,@bodies)
-               nil)))))
+             (progn
+               nil)
+             )))))
 
 ;; XWindowをflushする.
 ;; xflushよりもこいつを使うべき.
@@ -72,7 +75,7 @@
 ;; 周期で呼ぶとXWindowが応答しなくなる.
 (defmethod flush ((man <manager>))
   "Flush XWindow output."
-  (xlib:display-force-output (display-of man)))
+  (clyax:XFlush (display-of man)))
 
 ;; managerにログを書き込む.
 (defmethod log-format ((manager <manager>) str &rest args)
@@ -86,65 +89,116 @@
 ;; 出されることに注意.
 ;; イベントを処理した後に全てのwidgetを描画し直す.
 (defmethod event-loop ((manager <manager>))
-  (xlib:event-case ((display-of manager)
-                    :force-output-p nil
-                    :discard-p t)
-                   (:exposure
-                    (window x y width height count)
-                    (with-xlib-window (win window manager)
-                      (chimi:with-mutex ((mutex-of manager))
-                        (log-format manager ":exposure event to ~A" win)
-                        (exposure-callback win x y width height count)))
-                    t)
-                   (:resize-request
-                    (window width height)
-                    (with-xlib-window (win window manager)
-                      (chimi:with-mutex ((mutex-of manager))
-                        (log-format manager ":resize-request event to ~A" win)
-                        (resize-callback win width height)))
-                    t)
-                   (:enter-notify
-                    ()
-                    (log-format manager ":enter-notify event")
-                    t)
-                   (:button-press
-                    (window x y)
-                    (with-xlib-window (win window manager)
-                      (chimi:with-mutex ((mutex-of manager))
-                        (log-format manager ":enter-notify event to ~A" win)
-                        (button-press-callback win x y)))
-                    t)
-                   (:button-release
-                    (window x y)
-                    (with-xlib-window (win window manager)
-                      (chimi:with-mutex ((mutex-of manager))
-                        (log-format manager ":button-relase event to ~A" win)
-                        (button-release-callback win x y)))
-                    t)
-                   (:configure-notify
-                    (window x y width height)
-                    (with-xlib-window (win window manager)
-                      (chimi:with-mutex ((mutex-of manager))
-                        (log-format manager ":configure-notify event to ~A" win)
-                        (configure-notify-callback win x y width height)))
-                    )
-                   (:motion-notify
-                    (window x y code)
-                    (with-xlib-window (win window manager)
-                      (chimi:with-mutex ((mutex-of manager))
-                        (log-format manager ":motion-notify event to ~A" win)
-                        (motion-notify-callback win x y code))))
-                   (otherwise
-                    ()
-                    t)
-                   )
+  (with-foreign-object
+   (event 'clyax::XEvent)
+   (while (clyax::XPending (display-of manager))
+     (clyax::XNextEvent (display-of manager) event)
+     (let ((type (foreign-slot-value event 'clyax::XEvent 'clyax::type)))
+       (cond
+        ((= clyax::Expose type)
+         (with-foreign-slots
+          ((clyax::x clyax::y
+           clyax::window
+           clyax::width clyax::height
+           clyax::count)
+           (foreign-slot-value event
+                               'clyax::XEvent
+                               'clyax::xexpose)
+           clyax::XExposeEvent)
+         (with-xlib-window
+          (win clyax::window manager)
+          (chimi:with-mutex
+           ((mutex-of manager))
+           (log-format manager ":exposure event to ~A" win)
+           (exposure-callback win
+                              clyax::x
+                              clyax::y
+                              clyax::width
+                              clyax::height
+                              clyax::count)))))
+        ((= clyax::ResizeRequest type)
+        (with-foreign-slots
+         ((clyax::width clyax::height clyax::window)
+          (foreign-slot-value event
+                              'clyax::XEvent
+                              'clyax::xresizerequest)
+          clyax::XResizeRequestEvent)
+         (with-xlib-window
+          (win clyax::window manager)
+           (chimi:with-mutex
+            ((mutex-of manager))
+             (log-format manager ":resize event to ~A" win)
+             (resize-callback win clyax::width clyax::height)))))
+        ((= clyax::MotionNotify type)
+        (with-foreign-slots
+         ((clyax::x clyax::y clyax::window
+          clyax::x_root clyax::y_root)
+          (foreign-slot-value event
+                              'clyax::XEvent
+                              'clyax::xmotion)
+          clyax::XMotionEvent)
+         (with-xlib-window
+          (win clyax::window manager)
+           (chimi:with-mutex
+            ((mutex-of manager))
+             (log-format manager ":motion-notify event to ~A" win)
+             (motion-notify-callback win clyax::x clyax::y nil)))))
+        ((= clyax::ButtonPress type)
+        (with-foreign-slots
+         ((clyax::x clyax::y clyax::window
+          clyax::x_root clyax::y_root)
+          (foreign-slot-value event
+                              'clyax::XEvent
+                              'clyax::xbutton)
+          clyax::XButtonEvent)
+         (with-xlib-window
+          (win clyax::window manager)
+           (chimi:with-mutex
+            ((mutex-of manager))
+             (log-format manager ":button-press event to ~A" win)
+             (button-press-callback win clyax::x clyax::y)))))
+        ((= clyax::ButtonRelease type)
+        (with-foreign-slots
+         ((clyax::x clyax::y clyax::window
+          clyax::x_root clyax::y_root)
+          (foreign-slot-value event
+                              'clyax::XEvent
+                              'clyax::xbutton)
+          clyax::XButtonEvent)
+         (with-xlib-window
+          (win clyax::window manager)
+           (chimi:with-mutex
+            ((mutex-of manager))
+             (log-format manager ":button-release event to ~A" win)
+             (button-release-callback win clyax::x clyax::y)))))
+       ((= clyax::ConfigureNotify type)
+        (with-foreign-slots
+         ((clyax::x clyax::y clyax::window
+           clyax::width clyax::height)
+          (foreign-slot-value event
+                              'clyax::XEvent
+                              'clyax::xconfigure)
+          clyax::XConfigureEvent)
+         (with-xlib-window
+          (win clyax::window manager)
+          (chimi:with-mutex
+           ((mutex-of manager))
+           (log-format manager ":configure-notify event to ~A" win)
+           (configure-notify-callback win
+                                      clyax::x clyax::y
+                                      clyax::width clyax::height)))))
+       ((= clyax::EnterNotify type)
+        (log-format manager ":enter-notify event")
+        )
+       (t
+        )
+       ))))
   (iterate:iter (iterate:for win in (remove-if
                                      #'(lambda (w) (subtypep (class-of w) '<widget>))
                                      (windows-of manager)))
                 (render-widgets win)
                 (flush-window win :clear t))
-  (flush manager)
-  )
+  (flush manager))
 
 ;; managerに<window>を追加する.
 ;; 全ての<window>は<manager>によって管理される必要がある.
@@ -160,19 +214,26 @@
 ;; 短い周期で繰り返し呼ぶと, xserverとの接続が
 ;; 不安定になるので注意が必要.
 (defun xflush ()
-  (xlib:display-finish-output (display-of *manager*)))
+  (clyax:XFlush (display-of *manager*)))
 
 ;; nurikabeで共通に使われるeventのマスクを
 ;; 返す
 (defun default-event-mask ()
-  (xlib:make-event-mask :exposure
-                        :button-press
-                        :button-release
-                        :button-1-motion
-                        ;;:resize-redirect
-                        :structure-notify
-                        :substructure-notify))
+  (logior
+   clyax:ExposureMask
+   clyax:ButtonPressMask
+   clyax:ButtonReleaseMask
+   clyax:Button1MotionMask
+   clyax:StructureNotifyMask
+   clyax:SubstructureNotifyMask))
 
+(defun default-attribute-mask ()
+  (logior
+   clyax:CWEventMask
+   clyax:CWColormap
+   clyax:CWBackPixmap
+   ;;clyax:CWOverrideRedirect))
+   ))
 
 (defun new-texture-name (&optional (man *manager*))
   (incf (gl-textures-of man)))

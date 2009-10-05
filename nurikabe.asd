@@ -2,7 +2,10 @@
     :depends-on (chimi clx cl-vectors
 		 cl-aa-misc cl-vectors zpb-ttf
 		 cl-paths-ttf iterate
-                 nurarihyon)
+                 cffi
+                 clyax
+                 nurarihyon
+                 alexandria)
     :components ((:file "nurikabe")
 		 (:file "classes"
 			:depends-on ("nurikabe"))

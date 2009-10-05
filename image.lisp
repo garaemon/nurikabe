@@ -227,3 +227,17 @@
           (setf (aref to (+ (* (+ (* i width) j) 3) 2))
                 (aref from i j 0))))
     to))
+
+(defmethod fill-c-array ((image <image>) to)
+  (with-slots
+   (width height) image
+   (let ((from (content-of image)))
+     (dotimes (i height)
+       (dotimes (j width)
+         (setf (mem-ref to :unsigned-int (+ (* (+ (* i width) j) 4) 0))
+               (aref from i j 2))
+         (setf (mem-ref to :unsigned-int (+ (* (+ (* i width) j) 4) 1))
+               (aref from i j 1))
+         (setf (mem-ref to :unsigned-int (+ (* (+ (* i width) j) 4) 2))
+               (aref from i j 0))))
+     to)))

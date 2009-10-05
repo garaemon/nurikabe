@@ -7,7 +7,7 @@
 		   (safety 3)))
 
 (defpackage #:nurikabe
-  (:use #:common-lisp #:chimi)
+  (:use #:common-lisp #:chimi #:cffi)
   (:export
    ;; manager.lisp
    #:*manager*
@@ -57,6 +57,8 @@
    #:line-up
    ;; gl-wrapper
    #:gl-command
+   ;;#:tex-image-2d
+   #:glteximage2d
    ;; gl-window
    #:make-gl-window
    #:with-gl-make-current-window

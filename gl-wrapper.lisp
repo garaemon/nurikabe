@@ -103,3 +103,41 @@
      (gl:begin ,type)
      ,@args
      (gl:end)))
+;; we use cffixxxx
+;; (sb-alien:load-shared-object
+;;  "/System/Library/Frameworks/OpenGL.framework/Versions/A/OpenGL")
+;; (sb-alien:load-shared-object
+;;  "/usr/X11/lib/libGL.dylib")
+;;(sb-alien:load-shared-object
+;; "/usr/X11/lib/libGLX.dylib")
+
+;; (use-foreign-library darwin-gl)
+;; (use-foreign-library libgl)
+
+;; (defctype void :void)
+;; (defctype int :int)
+;; (defctype sizei :int)
+;; (defctype enum :int)
+;; copy from cl-opengl
+;;(defcfun ("glTexImage2D" tex-image-2d) :void
+;; (sb-alien:define-alien-routine "glTexImage2D" sb-alien:void
+;;   (target sb-alien:int)
+;;   (level sb-alien:int)
+;;   (internalformat sb-alien:int)
+;;   (width sb-alien:int)
+;;   (height sb-alien:int)
+;;   (border sb-alien:int)
+;;   (format sb-alien:int)
+;;   (type sb-alien:int)
+;;   ;;(pixels (:pointer void))
+;;   (pixels (sb-alien:* sb-alien:unsigned-char))
+;;   ;;(pixels (sb-alien:* sb-alien:void))
+;;   ;;(pixels sb-alien:void)
+;;   )
+
+;; (sb-alien:define-alien-routine
+;;  "glTexParameteri" sb-alien:void
+;;  (a sb-alien:unsigned-int)
+;;  (b sb-alien:unsigned-int)
+;;  (c sb-alien:int)
+;;  )
