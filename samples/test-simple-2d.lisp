@@ -62,6 +62,15 @@
   (nurikabe:flush-window *win* :clear t)
   (nurikabe:flush *manager*))
 
+(defun fast-main ()
+  (test-line)
+  (test-polygon)
+  (test-rectangle)
+  (test-string)
+  (test-circle)
+  (test-rectangle-and-string)
+  )
+
 (defun main ()
   (test-line)
   (sleep 3)

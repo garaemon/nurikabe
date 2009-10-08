@@ -1,9 +1,8 @@
 (defsystem nurikabe
-    :depends-on (chimi clx cl-vectors
+    :depends-on (chimi cl-vectors
 		 cl-aa-misc cl-vectors zpb-ttf
 		 cl-paths-ttf iterate
-                 cffi
-                 clyax
+                 cffi clyax
                  nurarihyon
                  alexandria)
     :components ((:file "nurikabe")
@@ -23,9 +22,9 @@
                         :depends-on ("nurikabe" "classes" "manager" "color"))
 		 (:file "canvas"
                         :depends-on ("nurikabe" "classes" "manager" "color"))
-		 (:file "gl-canvas"
-                        :depends-on ("nurikabe" "classes" "manager" "color"
-                                     "canvas" "gl-wrapper"))
+;;; 		 (:file "gl-canvas"
+;;;                         :depends-on ("nurikabe" "classes" "manager" "color"
+;;;                                      "canvas" "gl-wrapper"))
                  (:file "gl-window"
                         :depends-on ("nurikabe" "classes" "manager" "color"
                                      "canvas" "gl-wrapper"))
@@ -35,19 +34,19 @@
                  (:file "gl-material"
                         :depends-on ("nurikabe" "classes" "manager" "color"
                                      "canvas" "gl-wrapper"))
-		 (:file "widget"
-                        :depends-on ("nurikabe" "classes" "manager" "color"
-                                     "window"))
-		 (:file "toggle-button-widget"
-                        :depends-on ("nurikabe" "classes" "manager" "color"
-                                     "window" "widget"))
-		 (:file "click-button-widget"
-                        :depends-on ("nurikabe" "classes" "manager" "color"
-                                     "window" "widget"))
-		 (:file "packing-box"
-                        :depends-on ("nurikabe" "classes" "manager" "color"
-                                     "window"))
-		 (:file "viewer"
-                        :depends-on ("nurikabe" "classes" "manager" "color"
-                                     "window" "gl-wrapper" "gl-canvas"))
+;;; 		 (:file "widget"
+;;;                         :depends-on ("nurikabe" "classes" "manager" "color"
+;;;                                      "window"))
+;;; 		 (:file "toggle-button-widget"
+;;;                         :depends-on ("nurikabe" "classes" "manager" "color"
+;;;                                      "window" "widget"))
+;;; 		 (:file "click-button-widget"
+;;;                         :depends-on ("nurikabe" "classes" "manager" "color"
+;;;                                      "window" "widget"))
+;;; 		 (:file "packing-box"
+;;;                         :depends-on ("nurikabe" "classes" "manager" "color"
+;;;                                      "window"))
+;;; 		 (:file "viewer"
+;;;                         :depends-on ("nurikabe" "classes" "manager" "color"
+;;;                                      "window" "gl-wrapper" "gl-canvas"))
 		 ))

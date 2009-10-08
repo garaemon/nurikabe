@@ -49,26 +49,26 @@
                    :ambient ambient
                    :specular specular
                    :emission emission
-                   :shininess (list shininess)
+                   :shininess (if (listp shininess) shininess (list shininess))
                    :transparency transparency)))
 
 (defmethod setup-material ((material <gl-material>))
   (with-slots (ambient diffuse specular emission shininess)
       material
-    (gl:material-fv gl:+front-and-back+
-                    gl:+ambient+
+    (gl-material-fv clyax:GL_FRONT_AND_BACK
+                    clyax:GL_AMBIENT
                     ambient)
-    (gl:material-fv gl:+front-and-back+
-                    gl:+diffuse+
+    (gl-material-fv clyax:GL_FRONT_AND_BACK
+                    clyax:GL_DIFFUSE
                     diffuse)
-    (gl:material-fv gl:+front-and-back+
-                    gl:+specular+
+    (gl-material-fv clyax:GL_FRONT_AND_BACK
+                    clyax:GL_SPECULAR
                     specular)
-    (gl:material-fv gl:+front-and-back+
-                    gl:+emission+
+    (gl-material-fv clyax:GL_FRONT_AND_BACK
+                    clyax:GL_EMISSION
                     emission)
-    (gl:material-fv gl:+front-and-back+
-                    gl:+shininess+
+    (gl-material-fv clyax:GL_FRONT_AND_BACK
+                    clyax:GL_SHININESS
                     shininess)
     material))
 
@@ -1009,25 +1009,7 @@
 
 (defmethod transparent ((m <gl-material>) transparency)
   (setf (transparency-of m) transparency)
-;;   (setf (ambient-of m) (append (butlast (ambient-of m)) (list transparency)))
-;;   (setf (diffuse-of m) (append (butlast (diffuse-of m)) (list transparency)))
-;;   (setf (specular-of m) (append (butlast (specular-of m)) (list transparency)))
-;;   (setf (emission-of m) (append (butlast (emission-of m)) (list transparency)))
   )
 
-;; (defmacro alpha-blending (m &rest args)
-;;   currently does not work?
-;;   `(progn
-;;      (when (and ,m (transparency-of ,m))
-;;        (gl:enable gl:+blend+)
-;;        (gl:blend-func gl:+src-alpha+ gl:+one-minus-src-alpha+)
-;;        (gl:disable gl:+lighting+)
-;;        )
-;;      (prog1
-;;          (progn
-;;            ,@args)                      return ,@args
-;;        (when (and ,m (transparency-of ,m))
-;;          (gl:disable gl:+blend+)
-;;          (gl:enable gl:+lighting+)))))
 (defmacro alpha-blending (m &rest args)
   `(progn ,@args))

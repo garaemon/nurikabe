@@ -10,10 +10,12 @@
 (in-package #:nurikabe)
 
 (defvar *font-paths*
-  #+:darwin
-  '(#p"/Library/Fonts/"
-    #p"/System/Library/Fonts/"
-    #p"/usr/X11/lib/X11/fonts/TTF/"))
+;;  #+:darwin
+;;  '(#p"/Library/Fonts/"
+;;    #p"/System/Library/Fonts/"
+;;    #p"/usr/X11/lib/X11/fonts/TTF/"))
+  '(#p"/usr/share/fonts/truetype/ttf-bitstream-vera/")
+  )
 
 ;; for printing
 (defmethod print-object ((image <image>) stream)
@@ -210,6 +212,7 @@
             (max-y (cdr (assoc :max-y bbox))))
         (cons (- max-x min-x) (- max-y min-y)))))
 
+;; ???
 (defmethod flat-content-of ((image <image>) &optional (to nil))
   (let ((from (content-of image))
         (width (width-of image))
@@ -230,14 +233,15 @@
 
 (defmethod fill-c-array ((image <image>) to)
   (with-slots
-   (width height) image
-   (let ((from (content-of image)))
-     (dotimes (i height)
-       (dotimes (j width)
-         (setf (mem-ref to :unsigned-int (+ (* (+ (* i width) j) 4) 0))
-               (aref from i j 2))
-         (setf (mem-ref to :unsigned-int (+ (* (+ (* i width) j) 4) 1))
-               (aref from i j 1))
-         (setf (mem-ref to :unsigned-int (+ (* (+ (* i width) j) 4) 2))
-               (aref from i j 0))))
-     to)))
+        (width height)
+      image
+    (let ((from (content-of image)))
+        (dotimes (j width)
+          (dotimes (i height)
+            (setf (mem-aref to :unsigned-char (+ (* (+ (* i width) j) 3) 0))
+                  (aref from j i 0))       ;reversed?
+            (setf (mem-aref to :unsigned-char (+ (* (+ (* i width) j) 3) 1))
+                  (aref from j i 1))       ;reversed?
+            (setf (mem-aref to :unsigned-char (+ (* (+ (* i width) j) 3) 2))
+                  (aref from j i 2))))     ;reversed?
+        to)))
