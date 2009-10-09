@@ -10,14 +10,14 @@
   (progn
      (setf (mem-aref attrib :int 0) clyax:GLX_RGBA)
      (setf (mem-aref attrib :int 1) clyax:GLX_RED_SIZE)
-     (setf (mem-aref attrib :int 2) 1)
+     (setf (mem-aref attrib :int 2) 8)
      (setf (mem-aref attrib :int 3) clyax:GLX_GREEN_SIZE)
-     (setf (mem-aref attrib :int 4) 1)
+     (setf (mem-aref attrib :int 4) 8)
      (setf (mem-aref attrib :int 5) clyax:GLX_BLUE_SIZE)
-     (setf (mem-aref attrib :int 6) 1)
+     (setf (mem-aref attrib :int 6) 8)
      (setf (mem-aref attrib :int 7) clyax:GLX_DOUBLEBUFFER)
      (setf (mem-aref attrib :int 8) clyax:GLX_DEPTH_SIZE)
-     (setf (mem-aref attrib :int 9) 1)
+     (setf (mem-aref attrib :int 9) 8)
      (setf (mem-aref attrib :int 10) clyax:None)
      attrib))
 

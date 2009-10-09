@@ -1007,9 +1007,33 @@
 (defun gl-material-p (mat)
   (subtypep (type-of mat) '<gl-material>))
 
-(defmethod transparent ((m <gl-material>) transparency)
-  (setf (transparency-of m) transparency)
-  )
+(defmethod transparent ((m <gl-material>) trans)
+  (with-slots (transparency diffuse ambient specular emission) m
+    (setf transparency trans)
+    (setf (elt diffuse 3) trans)
+    (setf (elt ambient 3) trans)
+    (setf (elt specular 3) trans)
+    (setf (elt emission 3) trans)
+    trans))
 
-(defmacro alpha-blending (m &rest args)
-  `(progn ,@args))
+;; (defmacro alpha-blending (m &rest args)
+;;   `(progn ,@args))
+(defmacro alpha-blending (&rest args)
+  `(progn
+     (gl-enable-block
+      clyax:GL_BLEND
+      (clyax:glDepthMask clyax:GL_FALSE)
+      (clyax:glBlendFunc clyax:GL_SRC_ALPHA clyax:GL_ONE_MINUS_SRC_ALPHA)
+      (prog1
+          (progn
+            ,@args)
+        (clyax:glDepthMask clyax:GL_TRUE)))))
+       
+
+
+(defun symbol->gl-rgb-vector (sym)
+  "combarts keyword to rgb vector for OpenGL."
+  (declare (type (or string symbol) sym))
+  (let ((ret (find sym *gl-materials* :key #'name-of)))
+    (if ret (diffuse-of ret) nil)))
+

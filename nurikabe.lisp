@@ -88,7 +88,9 @@
    #:find-gl-material
    #:gl-material-p
    #:transparent
-   #:alpha-blending))
+   #:alpha-blending
+   #:symbol->gl-rgb-vector
+   ))
 
 (in-package #:nurikabe)
 

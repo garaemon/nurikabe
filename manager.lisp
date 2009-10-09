@@ -40,6 +40,8 @@
           (clyax:XDefaultScreen (display-of *manager*)))
     (setf (logger-of *manager*)
 	  (chimi:make-logger :location "/tmp/nurikabe.log"))
+    (setf (xevent-of *manager*)
+          (cffi:foreign-alloc 'clyax::XEvent))
     (setf (event-thread-of *manager*)
 	  (chimi:make-thread
 	   (lambda ()
@@ -65,15 +67,9 @@
             (,xwin (xlib-window->window ,manager ,(cadr params))))
        (let ((,(car params) ,xwin))
            (if ,xwin
-               (progn ,@bodies)
-             (progn
-               nil)
-             )))))
+               (progn ,@bodies))))))
 
 ;; XWindowをflushする.
-;; xflushよりもこいつを使うべき.
-;; xflush(display-finish-output)は短い
-;; 周期で呼ぶとXWindowが応答しなくなる.
 (defmethod flush ((man <manager>))
   "Flush XWindow output."
   (clyax:XFlush (display-of man)))
@@ -90,13 +86,11 @@
 ;; 出されることに注意.
 ;; イベントを処理した後に全てのwidgetを描画し直す.
 (defmethod event-loop ((manager <manager>))
-  (with-foreign-object
-      (event 'clyax::XEvent)
+  (let ((event (xevent-of manager)))
     (chimi:with-mutex
         ((mutex-of manager))
       (while (> (clyax:XEventsQueued (display-of manager) 1) 0)
         (clyax::XNextEvent (display-of manager) event)
-;;      (while (clyax::XPending (display-of manager))
         (let ((type (foreign-slot-value event 'clyax::XEvent 'clyax::type)))
           (cond
             ((= clyax::Expose type)
@@ -183,26 +177,22 @@
              (log-format manager ":enter-notify event")
              )
             (t
-             )
-            ))))
+             )))))
     (iterate:iter (iterate:for win in (remove-if
                                        #'(lambda (w) (subtypep (class-of w) '<widget>))
                                        (windows-of manager)))
                   (render-widgets win)
                   (flush-window win :clear t))
     ;;(flush manager)
-    (sleep 0.01)
-    ))
+    (sleep 0.01)))
 
 ;; managerに<window>を追加する.
 ;; 全ての<window>は<manager>によって管理される必要がある.
 ;; これはevent-loopを適切に処理するためである.
 ;; これは<window>のサブクラスである<widget>についても同様である.
 (defmethod add-window ((manager <manager>) (window <window>))
-  ;;(chimi:with-mutex ((mutex-of manager))
-    (push window (windows-of manager))
-    (setf (manager-of window) manager)
-    ;;)
+  (push window (windows-of manager))
+  (setf (manager-of window) manager)
   window)
 
 ;; display-finish-outputを呼び出す.
@@ -227,8 +217,21 @@
    clyax:CWEventMask
    clyax:CWColormap
    clyax:CWBackPixmap
-   ;;clyax:CWOverrideRedirect))
    ))
 
 (defun new-texture-name (&optional (man *manager*))
   (incf (gl-textures-of man)))
+
+(defmethod wait-event ((manager <manager>) ev)
+  "wait until event will ..."
+  (with-foreign-object
+      (event 'clyax::XEvent)
+    (while t
+      (while (> (clyax:XEventsQueued (display-of manager) 1) 0)
+        (clyax::XNextEvent (display-of manager) event)
+        (let ((type (foreign-slot-value event 'clyax::XEvent 'clyax::type)))
+          (if (eq type ev)
+              (return-from wait-event t)))))))
+    
+  
+  

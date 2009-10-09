@@ -1,7 +1,9 @@
 (defsystem nurikabe
     :depends-on (chimi cl-vectors
 		 cl-aa-misc cl-vectors zpb-ttf
-		 cl-paths-ttf iterate
+		 cl-paths-ttf
+                 cl-jpeg
+                 iterate
                  cffi clyax
                  nurarihyon
                  alexandria)
@@ -13,7 +15,7 @@
 		 (:file "font"
 			:depends-on ("nurikabe"))
 		 (:file "color"
-                        :depends-on ("nurikabe"))		 
+                        :depends-on ("nurikabe"))
 		 (:file "manager"
                         :depends-on ("nurikabe" "classes"))
 		 (:file "window"

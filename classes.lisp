@@ -46,6 +46,7 @@
    (current-gl-context nil)       ;for gl:makecrrent
    (gl-textures 0)                ;for substituing for glGenTexture
    (event-thread nil)             ;subthread which runs event-loop
+   (xevent nil)
    (mutex (make-mutex))))         ;mutex for event-loop in subthread
 
 (defclass* <window>

@@ -34,8 +34,7 @@
      (clyax:glEnable ,op)
      (prog1
          (progn ,@args)
-       (clyax:glDisable ,op))
-     ))
+       (clyax:glDisable ,op))))
 
 (declaim (inline gl-clear-color-fv))
 (defun gl-clear-color-fv (v)
@@ -44,11 +43,6 @@
 (declaim (inline gl-vertex-3fv))
 (defun gl-vertex-3fv (v)
   (clyax:glVertex3f (elt v 0) (elt v 1) (elt v 2)))
-
-(declaim (inline gl-color-3fv))
-(defun gl-color-3fvw (v)
-  (clyax:glColor3f (elt v 0) (elt v 1) (elt v 2)))
-
 
 (declaim (inline gl-translate-fv))
 (defun gl-translate-fv (v)
