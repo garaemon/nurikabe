@@ -89,6 +89,7 @@
                     (display-string-margin-of widget))
                  (- (cdr (assoc :min-y string-bbox)))
                  :font-size (font-size-of widget))
+    (flush-window widget)
     ))
 
 (defmethod button-press-callback ((widget <click-button-widget>) x y)

@@ -28,12 +28,15 @@
    ;; color.lisp
    #:symbol->rgb-vector
    ;; window.lisp
+   #:<window>
+   #:widgets-of
    #:make-window
    #:put-image
    #:flush-window
    #:delete-widgets
    #:image-of
    #:xwindow-of
+   #:render-widgets
    ;; image.lisp
    #:make-image
    #:flat-content-of
@@ -52,9 +55,12 @@
    #:configure-notify-callback
    #:motion-notify-callback
    ;; widget
+   #:<widget>
+   #:make-widget
    #:make-click-button
    #:map-widgets
    #:make-toggle-button
+   #:render-widget
    ;; packing
    #:make-packing-box
    #:line-up

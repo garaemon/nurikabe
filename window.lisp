@@ -103,6 +103,19 @@
             (foreign-alloc :unsigned-char
                            :count
                            (* (width-of ret) (height-of ret) 4)))
+      ;; XImage
+      (setf (ximage-of ret)
+            (clyax::XCreateImage              ;memory leak...
+             (display-of manager)
+             (clyax::XDefaultVisual (display-of manager)
+                                    (root-screen-of manager))
+             24
+             clyax::ZPixmap
+             0
+             (image-array-of ret)
+             width height
+             32                                   ;bits-per-pixel
+             0))
       (unless image
         (setf (image-of ret) (make-image :width width
                                          :height height
@@ -149,18 +162,7 @@
    
    we use put-image create-image, force-display-output here."
   (update-image-array window) ;content of <image> -> image-array of <window>
-  ;; i think window should have ximage.
-  (let ((image (clyax::XCreateImage
-                (display-of (manager-of window)) ;display
-                (clyax::XDefaultVisual (display-of (manager-of window))
-                                       (root-screen-of (manager-of window)))
-                24
-                clyax::ZPixmap
-                0
-                (image-array-of window)
-                (width-of window) (height-of window) ;width, height
-                32                                   ;bits-per-pixel
-                0)))                                 ;bytes-per-line
+  (let ((image (ximage-of window)))
     (clyax::XPutImage
      (display-of (manager-of window))   ;display
      (xwindow-of window)                ;drawable

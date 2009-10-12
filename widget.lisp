@@ -43,6 +43,7 @@
                :screen (root-screen-of manager)
                :parent (xwindow-of parent)
                :x x :y y
+               :border-width 0
                :width width :height height
                :event-mask (default-event-mask)))
         (setf (gcontext-of widget)
@@ -53,7 +54,19 @@
         (setf (image-array-of widget)
               (foreign-alloc :unsigned-char
                            :count
-                           (* (width-of widget) (height-of widget) 4)))
+                           (* width height 4)))
+        (setf (ximage-of widget)
+              (clyax::XCreateImage              ;memory leak...
+               (display-of manager)
+               (clyax::XDefaultVisual (display-of manager)
+                                      (root-screen-of manager))
+               24
+               clyax::ZPixmap
+               0
+               (image-array-of widget)
+               width height
+               32                                   ;bits-per-pixel
+               0))
         (setf (image-of widget) (make-image :width width
                                             :height height
                                             :foreground (foreground-of (image-of parent))

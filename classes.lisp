@@ -59,6 +59,7 @@
    (gcontext nil)                  ;graphics context
    (manager nil)                   ;reference to manager
    (xwindow nil)                   ;for x window
+   (ximage nil)                    ;instance of XImage
    (x nil)                         ;x position in display
    (y nil)                         ;y position in display
    (widgets nil)                   ;the list of <widgets>

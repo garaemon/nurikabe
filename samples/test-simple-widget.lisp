@@ -17,14 +17,13 @@
                                       :press-callback
                                       #'(lambda () (format t "clicked~%")))))))
       (apply #'nurikabe:line-up vbox buttons)))
-  ;;(nurikabe:map-widgets *win*)
   (nurikabe:flush *manager*))
 
 (defun test-click-button-horizontal ()
   (nurikabe:delete-widgets *win* :flush nil)
   (let ((vbox (nurikabe:make-packing-box *win* :horizontal)))
     (let ((buttons (iterate:iter
-                    (iterate:for i from 0 to 1)
+                     (iterate:for i from 0 to 1)
                     (iterate:collect (nurikabe:make-click-button
                                       *win*
                                       (format nil "~A!" i)
@@ -50,8 +49,6 @@
   (nurikabe:map-widgets *win*)
   (nurikabe:flush *manager*))
 
-(test-click-button-vertical)
-
 (defun main ()
   (test-click-button-vertical)
   (sleep 1)
@@ -61,7 +58,7 @@
   (sleep 1)
   )
 
-;; (dotimes (i 10)
-;;   (main))
+(dotimes (i 10)
+  (main))
 ;;(main)
 

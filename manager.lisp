@@ -25,7 +25,7 @@
 
 ;; nurikabeの初期化関数. XWindowをオープンして,
 ;; <manager>のインスタンスを作る.
-(defun init-gui (&key (loggingp nil))
+(defun init-gui (&key (loggingp nil) (threadingp t))
   "Initialize function for NURIKABE package.
    This function must be called before any nurikabe process.
 
@@ -42,11 +42,12 @@
 	  (chimi:make-logger :location "/tmp/nurikabe.log"))
     (setf (xevent-of *manager*)
           (cffi:foreign-alloc 'clyax::XEvent))
-    (setf (event-thread-of *manager*)
-	  (chimi:make-thread
-	   (lambda ()
-             (clyax:Xsync (display-of *manager*) 1)
-	     (while t (event-loop *manager*)))))
+    (when threadingp
+      (setf (event-thread-of *manager*)
+            (chimi:make-thread
+             (lambda ()
+               (clyax:Xsync (display-of *manager*) 1)
+               (while t (event-loop *manager*))))))
     )
   *manager*)
 
@@ -82,8 +83,7 @@
   
 (defmacro with-x-serialize ((manager) &rest args)
   `(chimi:with-mutex ((mutex-of ,manager))
-     ,@args)
-  )
+     ,@args))
 
 ;; このメソッドはsubthreadで周期的に呼ばれる.
 ;; 各種イベントに対して適切なcallbackを呼び出す.
@@ -182,11 +182,13 @@
              )
             (t
              )))))
-;;;     (iterate:iter (iterate:for win in (remove-if
-;;;                                        #'(lambda (w) (subtypep (class-of w) '<widget>))
-;;;                                        (windows-of manager)))
-;;;                   (render-widgets win)
-;;;                   (flush-window win :clear nil))
+    (iterate:iter (iterate:for win in
+                               (remove-if
+                                #'(lambda (w) (subtypep (class-of w) '<widget>))
+                                (windows-of manager)))
+                  (render-widgets win)
+                  (flush-window win :clear nil)
+                  )
     ;;(flush manager)
     (sleep 0.01)                        ;sleep for not monopoly thread
     ))
