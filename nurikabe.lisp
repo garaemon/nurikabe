@@ -14,6 +14,7 @@
    #:init-gui
    #:flush
    #:new-texture-name
+   #:with-x-serialize
    ;; classes.lisp
    #:<window>
    #:<image>
@@ -40,6 +41,7 @@
    #:draw-string
    #:drawn-string-size
    #:draw-circle
+   #:draw-ring
    #:draw-polygon
    #:draw-rectangle
    #:fill-c-array

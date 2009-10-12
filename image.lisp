@@ -62,9 +62,7 @@
     (dotimes (i (height-of image))
       (dotimes (j (width-of image))
         (dotimes (k (depth-of image))
-          (setf (aref content i j k)
-                (aref rgb k))
-          ))))
+          (setf (aref content i j k) (aref rgb k))))))
   image)
 
 (defmethod copy-image ((image <image>)
@@ -121,6 +119,7 @@
                            (color :black)
                            (fill t)
                            (line-width 1.0)
+                           (angle nil)  ;for rotating
                            (round nil)
                            (round-x nil)
                            (round-y nil))
@@ -131,6 +130,7 @@
                                               :round-x round-x
                                               :round-y round-y))
             (state (aa:make-state)))
+        (if angle (paths:path-rotate paths angle (paths:make-point x y)))
         (let ((put-pixel (aa-misc:image-put-pixel (content-of image)
                                                   (symbol->rgb-vector color))))
           (aa:cells-sweep (vectors::update-state state paths) put-pixel)))
@@ -139,6 +139,7 @@
                         x y
                         width height
                         :color color
+                        :angle angle
                         :fill t)
         (draw-rectangle image
                         (+ x line-width)
@@ -146,6 +147,7 @@
                         (- width (* 2 line-width))
                         (- height (* 2 line-width))
                         :color (background-of image)
+                        :angle angle
                         :fill t)
         ))
   image)
@@ -158,9 +160,22 @@
   (let ((paths (paths:make-circle-path x y radius))
         (state (aa:make-state)))
     (let ((put-pixel (aa-misc:image-put-pixel (content-of image)
-                                               (symbol->rgb-vector color))))
+                                              (symbol->rgb-vector color))))
       (aa:cells-sweep (vectors::update-state state paths) put-pixel)
       image)))
+
+(defmethod draw-ring ((image <image>)
+                      x y
+                      radius band
+                      &key
+                      (ring-color :black)
+                      (center-color :white))
+  (let ((small-r (- radius band)))
+    (if (< small-r 0)
+        (error "band must be smaller than radius"))
+    (draw-circle image x y radius :color ring-color)
+    (draw-circle image x y small-r :color center-color)
+    image))
 
 (defmethod draw-string ((image <image>)
                         str
@@ -231,17 +246,17 @@
                 (aref from i j 0))))
     to))
 
-(defmethod fill-c-array ((image <image>) to)
+(defmethod fill-c-array ((image <image>) to &optional (step 3))
   (with-slots
         (width height)
       image
     (let ((from (content-of image)))
-        (dotimes (j width)
-          (dotimes (i height)
-            (setf (mem-aref to :unsigned-char (+ (* (+ (* i width) j) 3) 0))
-                  (aref from j i 0))       ;reversed?
-            (setf (mem-aref to :unsigned-char (+ (* (+ (* i width) j) 3) 1))
-                  (aref from j i 1))       ;reversed?
-            (setf (mem-aref to :unsigned-char (+ (* (+ (* i width) j) 3) 2))
-                  (aref from j i 2))))     ;reversed?
-        to)))
+      (dotimes (j width)
+        (dotimes (i height)
+          (setf (mem-aref to :unsigned-char (+ (* (+ (* i width) j) step) 0))
+                (aref from i j 0))
+          (setf (mem-aref to :unsigned-char (+ (* (+ (* i width) j) step) 1))
+                (aref from i j 1))
+          (setf (mem-aref to :unsigned-char (+ (* (+ (* i width) j) step) 2))
+                (aref from i j 2))))
+      to)))

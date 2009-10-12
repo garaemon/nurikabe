@@ -82,56 +82,17 @@
            (setf (width-of ret) width))
           (t
            (error "width and heigt, or image is required")))
-    (chimi:with-mutex ((nurikabe::mutex-of manager))
+    (with-x-serialize (manager)
       (setf (x-of ret) x)
       (setf (y-of ret) y)
-      (with-foreign-objects
-          ((vi 'clyax::XVisualInfo)
-           (xattr 'clyax::XSetWindowAttributes))
-        ;; setup visual
-        ;; <-- failed!!
-        (clyax::XMatchVisualInfo (display-of manager)
-                                 (root-screen-of manager)
-                                 depth
-                                 ;;clyax::DirectColor
-                                 clyax::TrueColor
-                                 vi)
-        ;; setup attrib
-        ;; event-mask, colormap, background, override-redirect, attribmask
-        (setf (foreign-slot-value xattr
-                                  'clyax::XSetWindowAttributes
-                                  'clyax::event_mask)
-              (default-event-mask))
-        ;; VisualInfo -> Visual
-        (let ((vis (foreign-slot-value vi
-                                       'clyax::XVisualInfo
-                                       'clyax::visual)))
-          ;; colormap
-          (setf (foreign-slot-value xattr
-                                    'clyax::XSetWindowAttributes
-                                    'clyax::colormap)
-                (clyax::XCreateColormap
-                 (display-of manager)
-                 (root-window-of manager)
-                 vis
-                 clyax::AllocNone))
-          ;; override redirect
-          (setf (foreign-slot-value xattr
-                                    'clyax::XSetWindowAttributes
-                                    'clyax::override_redirect)
-                1)
-          (setf (xwindow-of ret)
-                (clyax::XCreateWindow
-                 (display-of manager)   ;display
-                 (root-window-of manager) ;parent
-                 x y                      ;x, y
-                 width height             ;width, height
-                 2                        ;border width
-                 clyax::CopyFromParent    ;depth
-                 clyax::InputOutput       ;class
-                 vis
-                 (default-attribute-mask) ;attrib mask
-                 xattr))))
+      (setf (xwindow-of ret)
+            (x-create-window
+             :display (display-of manager)   ;display
+             :parent (root-window-of manager) ;parent
+             :screen (root-screen-of manager)
+             :x x :y y
+             :depth depth
+             :width width :height height))
       ;; create gc
       (setf (gcontext-of ret)
             (clyax::XCreateGC (display-of manager)
@@ -139,30 +100,24 @@
                               0
                               (cffi:null-pointer)))
       (setf (image-array-of ret)
-            (make-array ;;(* (width-of ret) (height-of ret) 4)
-             (* width height 4)
-             :element-type '(UNSIGNED-BYTE 8)
-             :initial-element 0))
+            (foreign-alloc :unsigned-char
+                           :count
+                           (* (width-of ret) (height-of ret) 4)))
       (unless image
         (setf (image-of ret) (make-image :width width
                                          :height height
                                          :foreground foreground
                                          :background background
                                          :font font)))
-      ;;(flush manager))
-      )
     (add-window manager ret)
-    (chimi:with-mutex ((nurikabe::mutex-of manager))
-      (clyax::XSelectInput
-       (display-of manager)
-       (xwindow-of ret)
-       (default-event-mask))
-      (map-window ret)
-      (flush manager)
-      (put-image ret (image-of ret) :flush t)
-      (flush manager)
-      (log-format ret  "window ~A is created" ret)
-      ret)))
+    
+    (map-window ret)
+    (flush manager)
+    (wait-event manager clyax::Expose)
+    (put-image ret (image-of ret) :flush t)
+    (flush manager)
+    (log-format ret  "window ~A is created" ret)
+    ret)))
 
 (defmethod put-image ((window <window>)
                       (image <image>)
@@ -183,56 +138,39 @@
 (defmethod update-image-array ((window <window>))
   "copy content of <image>, that is a #3A simple array,
    to image-array of <window>, that is a #1A simple array."
-  (let ((from (content-of (image-of window)))
+  (let ((from (image-of window))
         (to (image-array-of window)))
-    (let ((width (width-of (image-of window)))
-          (height (height-of (image-of window))))
-      (dotimes (i height)
-        (dotimes (j width)
-          (setf (aref to (+ (* (+ (* i width) j) 4) 0))
-                (aref from i j 2))
-          (setf (aref to (+ (* (+ (* i width) j) 4) 1))
-                (aref from i j 1))
-          (setf (aref to (+ (* (+ (* i width) j) 4) 2))
-                (aref from i j 0))
-      ))
-      window)))
+    (fill-c-array from to 4)
+    window))
 
 (defmethod flush-window ((window <window>) &key (clear nil))
   "In this flush-window method, image-array is copied from image and
    draw image to window.
-
-   we use put-image create-image, force-display-output here.
-   "
-  (update-image-array window)           ;content of <image> -> image-array of <window>
-  (with-foreign-object
-   (data :unsigned-char (* (width-of window)
-                           (height-of window)
-                           4))
-   ;; fill data
-   (fill-c-array (image-of window) data)
-   (let ((image (clyax::XCreateImage
-                 (display-of (manager-of window)) ;display
-                 (clyax::XDefaultVisual (display-of (manager-of window))
-                                        (root-screen-of (manager-of window)))
-                 24
-                 clyax::ZPixmap
-                 0
-                 data                    ;data(unsigned char*)
-                 (width-of window) (height-of window) ;width, height
-                 32                                   ;bits-per-pixel
-                 0)))                                 ;bytes-per-line
-     (clyax::XPutImage
-      (display-of (manager-of window))   ;display
-      (xwindow-of window)                ;drawable
-      (gcontext-of window)               ;gcontext-of
-      image                              ;ximage
-      0 0                                ;src x, y
-      0 0                                ;dest x. y
-      (width-of window) (height-of window))))
+   
+   we use put-image create-image, force-display-output here."
+  (update-image-array window) ;content of <image> -> image-array of <window>
+  ;; i think window should have ximage.
+  (let ((image (clyax::XCreateImage
+                (display-of (manager-of window)) ;display
+                (clyax::XDefaultVisual (display-of (manager-of window))
+                                       (root-screen-of (manager-of window)))
+                24
+                clyax::ZPixmap
+                0
+                (image-array-of window)
+                (width-of window) (height-of window) ;width, height
+                32                                   ;bits-per-pixel
+                0)))                                 ;bytes-per-line
+    (clyax::XPutImage
+     (display-of (manager-of window))   ;display
+     (xwindow-of window)                ;drawable
+     (gcontext-of window)               ;gcontext-of
+     image                              ;ximage
+     0 0                                ;src x, y
+     0 0                                ;dest x. y
+     (width-of window) (height-of window)))
   ;; destroy image?
-  (if clear
-      (clear-image (image-of window)))
+  (if clear (clear-image (image-of window)))
   t)
 
 (defmethod move ((win <window>) x y)

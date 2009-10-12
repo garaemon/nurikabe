@@ -38,7 +38,9 @@
                                  :display-string-margin button-margin
                                  :parent win
                                  :font-size font-size
-                                 :press-callback press-callback)))
+                                 :press-callback press-callback
+                                 :map t)))
+        (render-widget widget)
         widget))))
 
 (defmethod inside-button-region-p ((widget <click-button-widget>) pos)

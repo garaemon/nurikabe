@@ -79,6 +79,11 @@
   (if (loggingp-of manager)
       (apply #'log-format (logger-of manager) str args)
       t))
+  
+(defmacro with-x-serialize ((manager) &rest args)
+  `(chimi:with-mutex ((mutex-of ,manager))
+     ,@args)
+  )
 
 ;; このメソッドはsubthreadで周期的に呼ばれる.
 ;; 各種イベントに対して適切なcallbackを呼び出す.
@@ -87,8 +92,7 @@
 ;; イベントを処理した後に全てのwidgetを描画し直す.
 (defmethod event-loop ((manager <manager>))
   (let ((event (xevent-of manager)))
-    (chimi:with-mutex
-        ((mutex-of manager))
+    (with-x-serialize (manager)
       (while (> (clyax:XEventsQueued (display-of manager) 1) 0)
         (clyax::XNextEvent (display-of manager) event)
         (let ((type (foreign-slot-value event 'clyax::XEvent 'clyax::type)))
@@ -178,13 +182,14 @@
              )
             (t
              )))))
-    (iterate:iter (iterate:for win in (remove-if
-                                       #'(lambda (w) (subtypep (class-of w) '<widget>))
-                                       (windows-of manager)))
-                  (render-widgets win)
-                  (flush-window win :clear t))
+;;;     (iterate:iter (iterate:for win in (remove-if
+;;;                                        #'(lambda (w) (subtypep (class-of w) '<widget>))
+;;;                                        (windows-of manager)))
+;;;                   (render-widgets win)
+;;;                   (flush-window win :clear nil))
     ;;(flush manager)
-    (sleep 0.01)))
+    (sleep 0.01)                        ;sleep for not monopoly thread
+    ))
 
 ;; managerに<window>を追加する.
 ;; 全ての<window>は<manager>によって管理される必要がある.
@@ -231,7 +236,7 @@
         (clyax::XNextEvent (display-of manager) event)
         (let ((type (foreign-slot-value event 'clyax::XEvent 'clyax::type)))
           (if (eq type ev)
-              (return-from wait-event t)))))))
+              (return-from wait-event t))))
+      (sleep 0.01)
+      )))
     
-  
-  
