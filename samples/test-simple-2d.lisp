@@ -1,6 +1,6 @@
 (require :nurikabe)
 
-(defvar *manager* (nurikabe:init-gui :loggingp t))
+(defvar *manager* (nurikabe:init-gui :loggingp t :threadingp nil))
 (defvar *win* (nurikabe:make-window :width 300
                                     :height 200
                                     :background :white
@@ -156,4 +156,4 @@
   (test-rectangle-and-string)
   t)
 
-;;(main)
+(main)

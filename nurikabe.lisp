@@ -15,9 +15,9 @@
    #:flush
    #:new-texture-name
    #:with-x-serialize
+   #:add-thread-hook
    ;; classes.lisp
    #:<window>
-   #:<image>
    #:<gl-window>
    #:width-of
    #:height-of
@@ -38,6 +38,8 @@
    #:xwindow-of
    #:render-widgets
    ;; image.lisp
+   #:<image>
+   #:background-of
    #:make-image
    #:flat-content-of
    #:draw-line
@@ -48,6 +50,7 @@
    #:draw-polygon
    #:draw-rectangle
    #:fill-c-array
+   #:fill-c-array-reverse
    ;; callbacks.lisp
    #:exposure-callback
    #:button-press-callback

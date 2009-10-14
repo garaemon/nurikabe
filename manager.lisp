@@ -80,10 +80,14 @@
   (if (loggingp-of manager)
       (apply #'log-format (logger-of manager) str args)
       t))
-  
+
 (defmacro with-x-serialize ((manager) &rest args)
   `(chimi:with-mutex ((mutex-of ,manager))
      ,@args))
+
+(defmethod add-thread-hook ((manager <manager>) function)
+  (with-x-serialize (manager)
+    (push function (thread-hooks-of manager))))
 
 ;; このメソッドはsubthreadで周期的に呼ばれる.
 ;; 各種イベントに対して適切なcallbackを呼び出す.
@@ -181,7 +185,11 @@
              (log-format manager ":enter-notify event")
              )
             (t
-             )))))
+             ))))
+      (iterate:iter
+        (iterate:for f in (thread-hooks-of manager))
+        (funcall f))
+      )
     (iterate:iter (iterate:for win in
                                (remove-if
                                 #'(lambda (w) (subtypep (class-of w) '<widget>))

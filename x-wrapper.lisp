@@ -17,6 +17,7 @@
                         (depth 24)
                         (width nil) (height nil)
                         (event-mask (default-event-mask))
+                        (override-redirect 1)
                         (border-width 2))
   ;; check arguments
   (if (null parent)
@@ -57,7 +58,7 @@
       (setf (foreign-slot-value xattr
                                     'clyax::XSetWindowAttributes
                                     'clyax::override_redirect)
-            1)
+            override-redirect)
       (let ((ret (clyax::XCreateWindow
                   display
                   parent

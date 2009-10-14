@@ -10,12 +10,13 @@
 (in-package #:nurikabe)
 
 (defvar *font-paths*
-;;  #+:darwin
-;;  '(#p"/Library/Fonts/"
-;;    #p"/System/Library/Fonts/"
-;;    #p"/usr/X11/lib/X11/fonts/TTF/"))
-  '(#p"/usr/share/fonts/truetype/ttf-bitstream-vera/")
-  )
+ #+:darwin
+ '(#p"/Library/Fonts/"
+   #p"/System/Library/Fonts/"
+   #p"/usr/X11/lib/X11/fonts/TTF/")
+ #+:linux
+ '(#p"/usr/share/fonts/truetype/ttf-bitstream-vera/")
+ )
 
 ;; for printing
 (defmethod print-object ((image <image>) stream)
@@ -177,22 +178,38 @@
     (draw-circle image x y small-r :color center-color)
     image))
 
+;;Aの縦幅で指定することにする
+(defun pixel-font-size->ttf-font-size (pixel-font-size font-loader)
+  (let ((paths (paths-ttf:paths-from-string font-loader "A"
+                                            :offset (paths-ttf::make-point 0 0)
+                                            )))
+    (let ((all-knots (reduce #'append
+                             (mapcar #'(lambda (x) (coerce (paths::path-knots x) 'cons))
+                                     paths))))
+      (let ((min-y (apply #'min (mapcar #'cdr all-knots)))
+            (max-y (apply #'max (mapcar #'cdr all-knots))))
+        (let ((height-in-pixel (- max-y min-y)))
+          (abs (/ (float pixel-font-size) (float height-in-pixel))))))))
+
 (defmethod draw-string ((image <image>)
                         str
-                        x y
+                        x y             ;左上の点
                         &key
                         (color :black)
-                        (font-size 0.015))
-  (let ((paths (paths-ttf:paths-from-string (font-loader-of image)
-                                            str
-                                            :offset (paths-ttf::make-point x y)
-                                            :scale-x font-size
-                                            :scale-y (- font-size)))
-        (state (aa:make-state)))
-    (let ((put-pixel (aa-misc:image-put-pixel (content-of image)
-                                              (symbol->rgb-vector color))))
-      (aa:cells-sweep (vectors::update-state state paths) put-pixel)
-      image)))
+                        (font-size 10)) ;in pixel
+  (let ((ttf-font-size (pixel-font-size->ttf-font-size
+                        font-size
+                        (font-loader-of image))))
+    (let ((paths (paths-ttf:paths-from-string (font-loader-of image)
+                                              str
+                                              :offset (paths-ttf::make-point x (+ font-size y))
+                                              :scale-x ttf-font-size
+                                              :scale-y (- ttf-font-size)))
+          (state (aa:make-state)))
+      (let ((put-pixel (aa-misc:image-put-pixel (content-of image)
+                                                (symbol->rgb-vector color))))
+        (aa:cells-sweep (vectors::update-state state paths) put-pixel)
+        image))))
 
 (defmethod drawn-string-bounding-box ((font ZPB-TTF::FONT-LOADER)
                                       str
@@ -260,3 +277,15 @@
           (setf (mem-aref to :unsigned-char (+ (* (+ (* i width) j) step) 2))
                 (aref from i j 2))))
       to)))
+
+(defmethod fill-c-array-reverse ((image <image>) to &optional (step 3))
+  (with-slots (width height)
+      image
+    (let ((from (content-of image)))
+      (dotimes (i height)
+        (dotimes (j width)
+          (dotimes (k step)
+            (setf (cffi:mem-aref to :unsigned-char (+ (* (+ (* i width) j) step) k))
+                  (aref from i j k)))
+            ))))
+  to)
