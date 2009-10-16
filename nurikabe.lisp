@@ -68,23 +68,23 @@
    #:make-packing-box
    #:line-up
    ;; gl-wrapper
-   #:gl-push-pop-matrix
-   #:gl-push-pop-attribute
-   #:gl-disable-block
-   #:gl-enable-block
-   #:gl-clear-color-fv
-   #:gl-vertex-3fv
-   #:gl-color-3fv
-   #:gl-translate-fv
-   #:gl-normal-3fv
-   #:gl-command
-   #:gl-light-fv
-   #:gl-material-fv
-   #:gl-mult-matrix-f
-   #:gl-color-3fv
-   #:gl-tex-coord-2fv
-   #:gl-new-texture-name
-   #:gl-display-list-block
+;;;    #:gl-push-pop-matrix
+;;;    #:gl-push-pop-attribute
+;;;    #:gl-disable-block
+;;;    #:gl-enable-block
+;;;    #:gl-clear-color-fv
+;;;    #:gl-vertex-3fv
+;;;    #:gl-color-3fv
+;;;    #:gl-translate-fv
+;;;    #:gl-normal-3fv
+;;;    #:gl-command
+;;;    #:gl-light-fv
+;;;    #:gl-material-fv
+;;;    #:gl-mult-matrix-f
+;;;    #:gl-color-3fv
+;;;    #:gl-tex-coord-2fv
+;;;    #:gl-new-texture-name
+;;;    #:gl-display-list-block
    ;; gl-window
    #:make-gl-window
    #:with-gl-make-current-window

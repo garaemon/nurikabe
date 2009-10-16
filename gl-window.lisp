@@ -8,17 +8,17 @@
 
 (defun fill-default-glx-attrib (attrib)
   (progn
-     (setf (mem-aref attrib :int 0) clyax:GLX_RGBA)
-     (setf (mem-aref attrib :int 1) clyax:GLX_RED_SIZE)
+     (setf (mem-aref attrib :int 0) glx:+rgba+)
+     (setf (mem-aref attrib :int 1) glx:+red-size+)
      (setf (mem-aref attrib :int 2) 8)
-     (setf (mem-aref attrib :int 3) clyax:GLX_GREEN_SIZE)
+     (setf (mem-aref attrib :int 3) glx:+green-size+)
      (setf (mem-aref attrib :int 4) 8)
-     (setf (mem-aref attrib :int 5) clyax:GLX_BLUE_SIZE)
+     (setf (mem-aref attrib :int 5) glx:+blue-size+)
      (setf (mem-aref attrib :int 6) 8)
-     (setf (mem-aref attrib :int 7) clyax:GLX_DOUBLEBUFFER)
-     (setf (mem-aref attrib :int 8) clyax:GLX_DEPTH_SIZE)
+     (setf (mem-aref attrib :int 7) glx:+doublebuffer+)
+     (setf (mem-aref attrib :int 8) glx:+depth-size+)
      (setf (mem-aref attrib :int 9) 8)
-     (setf (mem-aref attrib :int 10) clyax:None)
+     (setf (mem-aref attrib :int 10) xlib:+none+)
      attrib))
 
 (defun make-gl-window (&rest args
@@ -40,107 +40,75 @@
                                :width width :height height
                                ;; :font font
                                :manager manager
-                               :allow-other-keys t)))
+                               :allow-other-keys t))
+        (display (display-of manager))
+        (screen (root-screen-of manager))
+        (root (root-window-of manager)))
     ;; make xlib object
     (with-foreign-object
         (attrib :int 11)
       ;; set attrib
       (fill-default-glx-attrib attrib)
-      (let* ((visual (clyax:glXChooseVisual
-                      (display-of manager)
-                      (root-screen-of manager)
-                      attrib)))
-        (let ((colormap (clyax:XCreateColormap
-                         (display-of manager)
-                         (root-window-of manager)
-                         (foreign-slot-value visual
-                                             'clyax::XVisualInfo
-                                             'clyax::visual)
-                         clyax:AllocNone)))
-          (with-foreign-object
-              (attr 'clyax::XSetWindowAttributes)
-            (setf (foreign-slot-value attr
-                                      'clyax::XSetWindowAttributes
-                                      'clyax::event_mask)
-                  (default-event-mask))
-           (setf (foreign-slot-value attr
-                                     'clyax::XSetWindowAttributes
-                                     'clyax::background_pixel)
-                 0)
-           (setf (foreign-slot-value attr
-                                     'clyax::XSetWindowAttributes
-                                     'clyax::border_pixel)
-                 0)
-           (setf (foreign-slot-value attr
-                                     'clyax::XSetWindowAttributes
-                                     'clyax::colormap)
-                 colormap)
-           (let ((xwin (clyax:XCreateWindow
-                        (display-of manager)         ;display
-                        (root-window-of manager)     ;parent
-                        x y                          ;x, y
-                        width height                 ;width, height
-                        2                            ;border width
-                        (foreign-slot-value visual
-                                            'clyax::XVisualInfo
-                                            'clyax::depth)
-                        clyax:InputOutput
-                        (foreign-slot-value visual
-                                            'clyax::XVisualInfo
-                                            'clyax::visual)
-                        (default-attribute-mask)
-                        attr)))
-         ;; set hints and properties
-         (with-foreign-object
-          (sizehints 'clyax::XSizeHints)
-          (setf (foreign-slot-value sizehints
-                                    'clyax::XSizeHints
-                                    'clyax::x)
-                x)
-          (setf (foreign-slot-value sizehints
-                                    'clyax::XSizeHints
-                                    'clyax::y)
-                y)
-          (setf (foreign-slot-value sizehints
-                                    'clyax::XSizeHints
-                                    'clyax::width)
-                width)
-          (setf (foreign-slot-value sizehints
-                                    'clyax::XSizeHints
-                                    'clyax::height)
-                height)
-          (setf (foreign-slot-value sizehints
-                                    'clyax::XSizeHints
-                                    'clyax::flags)
-                (logior clyax:USSize clyax:USPosition))
-          (clyax:XSetNormalHints
-           (display-of manager)
-           xwin
-           sizehints)
-          (clyax::XSetStandardProperties
-           (display-of manager)
-           xwin
-           name
-           name
-           clyax:None
-           (cffi:null-pointer)
-           0
-           sizehints))
-         (let ((ctx (clyax:glXCreateContext (display-of manager)
-                                            visual
-                                            (cffi:null-pointer)
-                                            clyax:TRUE)))
-           (clyax:XFree visual)
-           (setf (xwindow-of canvas) xwin)
-           (setf (gl-context-of canvas) (list (cons (chimi:current-thread) ctx)))
-           ;; parentへwidgetを追加
-           (add-window manager canvas)
-           (when map (map-window canvas))
-           (flush manager)
-           (sleep 1)                    ;TODO. wait map.
-           (clyax:glxMakeCurrent (display-of manager) xwin ctx)
-           (log-format canvas "window ~A is created" canvas)
-           canvas))))))))
+      (let* ((visual (glx:choose-visual
+                      :display display
+                      :screen screen
+                      :attribute attrib))
+             (colormap (xlib:create-colormap
+                        :display display
+                        :window root
+                        :visual (xlib:visual-info-visual visual)
+                        :alloc xlib:+alloc-none+))
+             (attr (xlib:create-set-window-attributes
+                    :event-mask (default-event-mask)
+                    :background-pixel 0
+                    :border-pixel 0
+                    :colormap colormap))
+             (xwin (xlib:create-window
+                    :display display
+                    :parent root
+                    :x x :y y
+                    :width width :height height
+                    :border-width 2
+                    :depth (xlib:visual-info-depth visual)
+                    :class xlib:+input-output+ ;???
+                    :attribute-mask (default-attribute-mask)
+                    ;;:visual (xlib:visual-info-visual visual)
+                    :visual-info visual
+                    :attribute attr)))
+        ;; set hints and properties
+        (let ((size-hints
+               (xlib:create-size-hints
+                :x x :y y
+                :width width :height height
+                :flags (logior xlib:+us-size+ xlib:+us-position+)
+                :set-normal-hints-p t
+                :display display
+                :drawable xwin)))
+          (xlib:set-standard-properties :display display
+                                        :window xwin
+                                        :window-name name
+                                        :icon-name name
+                                        :pixmap xlib:+none+
+                                        :size-hints size-hints)
+          (let ((ctx (glx:create-context :display display
+                                         :visual-info visual
+                                         :directp t)))
+            
+            (setf (xwindow-of canvas) xwin)
+            (setf (gl-context-of canvas)
+                  (list (cons (chimi:current-thread) ctx)))
+            ;; parentへwidgetを追加
+            (add-window manager canvas)
+            (when map (map-window canvas))
+            (flush manager)
+            (wait-event manager xlib:+expose+)
+            ;; free C Objects?
+            (xlib:free visual)          
+            (glx:make-current :display display
+                              :drawable xwin
+                              :glx-context ctx)
+            (log-format canvas "window ~A is created" canvas))
+          canvas)))))
 
 (defmethod flush-window ((window <gl-window>) &key (clear nil))
   nil)
@@ -162,20 +130,22 @@
             (attrib :int 11)
           ;; set attrib
           (fill-default-glx-attrib attrib)
-          (let ((visual (clyax:glXChooseVisual
-                         (display-of manager)
-                         (root-screen-of manager)
-                         attrib)))
+          (let ((visual
+                 (glx:choose-visual
+                  :display (display-of manager)
+                  :screen (root-screen-of manager)
+                  :attribute attrib)))
             (push (cons (chimi:current-thread)
-                        (clyax:glXCreateContext
-                         (display-of manager)
-                         visual
-                         (cffi:null-pointer)
-                         clyax:TRUE))      ;TODO pixmap
+                        (glx:create-context
+                         :display (display-of manager)
+                         :visual-info visual
+                         :directp t))
                   gl-context))))
       (let ((current-thread-context (current-thread-gl-context win)))
         (prog1
-            (clyax:glXMakeCurrent (display-of manager) (xwindow-of win) current-thread-context)
+            (glx:make-current :display (display-of manager)
+                              :drawable (xwindow-of win)
+                              :glx-context current-thread-context)
           (if need-setup?
               (opengl-setup win)))))))
 
@@ -186,14 +156,13 @@
   (let ((make-current-result (gensym)))
     `(progn
        (gl-make-current ,canvas)
-       (if (not (and (eq (pointer-address (clyax:glxGetCurrentDrawable))
+       (if (not (and (eq (pointer-address (glx:get-current-drawable))
                          (pointer-address (xwindow-of ,canvas)))
-                     (eq (pointer-address (clyax:glxGetCurrentContext))
+                     (eq (pointer-address (glx:get-current-context))
                          (pointer-address (current-thread-gl-context ,canvas)))))
            (let ((,make-current-result (gl-make-current ,canvas))) ;aho
-             (if (= ,make-current-result clyax::True)
+             (if (= ,make-current-result xlib:+true+)
                  nil
                  (progn
                    (format t "make current failed~%")))))
        ,@args)))
-

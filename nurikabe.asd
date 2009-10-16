@@ -10,10 +10,8 @@
     :components ((:file "nurikabe")
 		 (:file "classes"
 			:depends-on ("nurikabe"))
-		 (:file "gl-wrapper"
-			:depends-on ("nurikabe"))
-                 (:file "x-wrapper"
-			:depends-on ("nurikabe"))
+;;; 		 (:file "gl-wrapper"
+;;; 			:depends-on ("nurikabe"))
 		 (:file "font"
 			:depends-on ("nurikabe"))
 		 (:file "color"
@@ -31,13 +29,13 @@
 ;;;                                      "canvas" "gl-wrapper"))
                  (:file "gl-window"
                         :depends-on ("nurikabe" "classes" "manager" "color"
-                                     "canvas" "gl-wrapper"))
+                                     "canvas"))
                  (:file "gl-light"
                         :depends-on ("nurikabe" "classes" "manager" "color"
-                                     "canvas" "gl-wrapper"))
+                                     "canvas"))
                  (:file "gl-material"
                         :depends-on ("nurikabe" "classes" "manager" "color"
-                                     "canvas" "gl-wrapper"))
+                                     "canvas"))
 		 (:file "widget"
                         :depends-on ("nurikabe" "classes" "manager" "color"
                                      "window"))

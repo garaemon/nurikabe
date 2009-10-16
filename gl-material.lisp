@@ -55,20 +55,20 @@
 (defmethod setup-material ((material <gl-material>))
   (with-slots (ambient diffuse specular emission shininess)
       material
-    (gl-material-fv clyax:GL_FRONT_AND_BACK
-                    clyax:GL_AMBIENT
+    (gl:material-fv gl:+front-and-back+
+                    gl:+ambient+
                     ambient)
-    (gl-material-fv clyax:GL_FRONT_AND_BACK
-                    clyax:GL_DIFFUSE
+    (gl:material-fv gl:+front-and-back+
+                    gl:+diffuse+
                     diffuse)
-    (gl-material-fv clyax:GL_FRONT_AND_BACK
-                    clyax:GL_SPECULAR
+    (gl:material-fv gl:+front-and-back+
+                    gl:+specular+
                     specular)
-    (gl-material-fv clyax:GL_FRONT_AND_BACK
-                    clyax:GL_EMISSION
+    (gl:material-fv gl:+front-and-back+
+                    gl:+emission+
                     emission)
-    (gl-material-fv clyax:GL_FRONT_AND_BACK
-                    clyax:GL_SHININESS
+    (gl:material-fv gl:+front-and-back+
+                    gl:+shininess+
                     shininess)
     material))
 
@@ -1016,20 +1016,16 @@
     (setf (elt emission 3) trans)
     trans))
 
-;; (defmacro alpha-blending (m &rest args)
-;;   `(progn ,@args))
 (defmacro alpha-blending (&rest args)
   `(progn
-     (gl-enable-block
-      clyax:GL_BLEND
-      (clyax:glDepthMask clyax:GL_FALSE)
-      (clyax:glBlendFunc clyax:GL_SRC_ALPHA clyax:GL_ONE_MINUS_SRC_ALPHA)
+     (gl:enable-block
+      gl:+blend+
+      (gl:depth-mask gl:+false+)
+      (gl:blend-func gl:+src-alpha+ gl:+one-minus-src-alpha+)
       (prog1
           (progn
             ,@args)
-        (clyax:glDepthMask clyax:GL_TRUE)))))
-       
-
+        (gl:depth-mask gl:+true+)))))
 
 (defun symbol->gl-rgb-vector (sym)
   "combarts keyword to rgb vector for OpenGL."

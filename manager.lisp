@@ -33,20 +33,21 @@
    and open X11 display."
   (unless *manager*
     (setf *manager* (make-instance '<manager> :loggingp loggingp))
-    (setf (display-of *manager*) (clyax:XOpenDisplay ""))
+    (setf (display-of *manager*) (xlib:open-display :host ""))
     (setf (root-window-of *manager*)
-          (clyax:XDefaultRootWindow (display-of *manager*)))
+          (xlib:default-root-window :display (display-of *manager*)))
     (setf (root-screen-of *manager*)
-          (clyax:XDefaultScreen (display-of *manager*)))
+          (xlib:default-screen :display (display-of *manager*)))
     (setf (logger-of *manager*)
 	  (chimi:make-logger :location "/tmp/nurikabe.log"))
     (setf (xevent-of *manager*)
-          (cffi:foreign-alloc 'clyax::XEvent))
+          (xlib:new-event))
     (when threadingp
       (setf (event-thread-of *manager*)
             (chimi:make-thread
              (lambda ()
-               (clyax:Xsync (display-of *manager*) 1)
+               (xlib:sync :display (display-of *manager*)
+                          :discardp t)
                (while t (event-loop *manager*))))))
     )
   *manager*)
@@ -73,7 +74,7 @@
 ;; XWindowをflushする.
 (defmethod flush ((man <manager>))
   "Flush XWindow output."
-  (clyax:XFlush (display-of man)))
+  (xlib:flush :display (display-of man)))
 
 ;; managerにログを書き込む.
 (defmethod log-format ((manager <manager>) str &rest args)
@@ -97,95 +98,61 @@
 (defmethod event-loop ((manager <manager>))
   (let ((event (xevent-of manager)))
     (with-x-serialize (manager)
-      (while (> (clyax:XEventsQueued (display-of manager) 1) 0)
-        (clyax::XNextEvent (display-of manager) event)
-        (let ((type (foreign-slot-value event 'clyax::XEvent 'clyax::type)))
-          (cond
-            ((= clyax::Expose type)
-             (with-foreign-slots
-                 ((clyax::x clyax::y
-                            clyax::window
-                            clyax::width clyax::height
-                            clyax::count)
-                  (foreign-slot-value event
-                                      'clyax::XEvent
-                                      'clyax::xexpose)
-                  clyax::XExposeEvent)
-               (with-xlib-window
-                   (win clyax::window manager)
-                 (log-format manager ":exposure event to ~A" win)
-                 (exposure-callback win
-                                    clyax::x
-                                    clyax::y
-                                    clyax::width
-                                    clyax::height
-                                    clyax::count))))
-            ((= clyax::ResizeRequest type)
-             (with-foreign-slots
-                 ((clyax::width clyax::height clyax::window)
-                  (foreign-slot-value event
-                                      'clyax::XEvent
-                                      'clyax::xresizerequest)
-                  clyax::XResizeRequestEvent)
-               (with-xlib-window
-                   (win clyax::window manager)
-                 (log-format manager ":resize event to ~A" win)
-                 (resize-callback win clyax::width clyax::height))))
-            ((= clyax::MotionNotify type)
-             (with-foreign-slots
-                 ((clyax::x clyax::y clyax::window
-                            clyax::x_root clyax::y_root)
-                  (foreign-slot-value event
-                                      'clyax::XEvent
-                                      'clyax::xmotion)
-                  clyax::XMotionEvent)
-               (with-xlib-window
-                   (win clyax::window manager)
-                 (log-format manager ":motion-notify event to ~A" win)
-                 (motion-notify-callback win clyax::x clyax::y nil))))
-            ((= clyax::ButtonPress type)
-             (with-foreign-slots
-                 ((clyax::x clyax::y clyax::window
-                            clyax::x_root clyax::y_root)
-                  (foreign-slot-value event
-                                      'clyax::XEvent
-                                      'clyax::xbutton)
-                  clyax::XButtonEvent)
-               (with-xlib-window
-                   (win clyax::window manager)
-                 (log-format manager ":button-press event to ~A" win)
-                 (button-press-callback win clyax::x clyax::y))))
-            ((= clyax::ButtonRelease type)
-             (with-foreign-slots
-                 ((clyax::x clyax::y clyax::window
-                            clyax::x_root clyax::y_root)
-                  (foreign-slot-value event
-                                      'clyax::XEvent
-                                      'clyax::xbutton)
-                  clyax::XButtonEvent)
-               (with-xlib-window
-                   (win clyax::window manager)
-                 (log-format manager ":button-release event to ~A" win)
-                 (button-release-callback win clyax::x clyax::y))))
-            ((= clyax::ConfigureNotify type)
-             (with-foreign-slots
-                 ((clyax::x clyax::y clyax::window
-                            clyax::width clyax::height)
-                  (foreign-slot-value event
-                                      'clyax::XEvent
-                                      'clyax::xconfigure)
-                  clyax::XConfigureEvent)
-               (with-xlib-window
-                   (win clyax::window manager)
-                 (log-format manager ":configure-notify event to ~A" win)
-                 (configure-notify-callback win
-                                            clyax::x clyax::y
-                                            clyax::width clyax::height))))
-            ((= clyax::EnterNotify type)
-             (log-format manager ":enter-notify event")
-             )
-            (t
-             ))))
+      (while (> (xlib:events-queued :display (display-of manager)
+                                    :mode 1) ;1??
+                0)
+        (xlib:next-event :display (display-of manager) :event event)
+        (xlib:event-case
+         event
+         (xlib:+expose+
+          (xlib::x xlib::y xlib::count xlib::window xlib::width xlib::height)
+          (with-xlib-window
+              (win xlib::window manager)
+            (log-format manager ":exposure event to ~A" win)
+            (exposure-callback win xlib::x xlib::y
+                               xlib::width xlib::height
+                               xlib::count)))
+         (xlib:+resize-request+
+          (xlib::width xlib::height xlib::window)
+          (with-xlib-window
+              (win xlib::window manager)
+            (log-format manager ":resize event to ~A" win)
+            (resize-callback win xlib::width xlib::height)))
+         (xlib:+motion-notify+
+          (xlib::x xlib::y xlib::window
+           xlib::x_root xlib::y_root)
+          (with-xlib-window
+              (win xlib::window manager)
+            (log-format manager ":motion-notify event to ~A" win)
+            (motion-notify-callback win xlib::x xlib::y nil)))
+         (xlib:+button-press+
+          (xlib::x xlib::y xlib::window
+           xlib::x_root xlib::y_root)
+          (with-xlib-window
+              (win xlib::window manager)
+            (log-format manager ":button-press event to ~A" win)
+            (button-press-callback win xlib::x xlib::y)))
+         (xlib:+button-release+
+          (xlib::x xlib::y xlib::window
+           xlib::x_root xlib::y_root)
+          (with-xlib-window
+              (win xlib::window manager)
+            (log-format manager ":button-release event to ~A" win)
+            (button-release-callback win xlib::x xlib::y)))
+         (xlib:+configure-notify+
+          (xlib::x xlib::y xlib::window
+           xlib::width xlib::height)
+          (with-xlib-window
+              (win xlib::window manager)
+            (log-format manager ":configure-notify event to ~A" win)
+            (configure-notify-callback win
+                                       xlib::x xlib::y
+                                       xlib::width xlib::height)))
+         (xlib:+enter-notify+
+          ()
+          (log-format manager ":enter-notify event"))
+         )
+        )
       (iterate:iter
         (iterate:for f in (thread-hooks-of manager))
         (funcall f))
@@ -210,29 +177,25 @@
   (setf (manager-of window) manager)
   window)
 
-;; display-finish-outputを呼び出す.
-;; 短い周期で繰り返し呼ぶと, xserverとの接続が
-;; 不安定になるので注意が必要.
 (defun xflush ()
-  (clyax:XFlush (display-of *manager*)))
+  (xlib:flush :display (display-of *manager*)))
 
 ;; nurikabeで共通に使われるeventのマスクを
 ;; 返す
 (defun default-event-mask ()
   (logior
-   clyax:ExposureMask
-   clyax:ButtonPressMask
-   clyax:ButtonReleaseMask
-   clyax:Button1MotionMask
-   clyax:StructureNotifyMask
-   clyax:SubstructureNotifyMask))
+   xlib:+exposure-mask+
+   xlib:+button-press-mask+
+   xlib:+button-release-mask+
+   xlib:+button1-motion-mask+
+   xlib:+substructure-notify-mask+
+   xlib:+structure-notify-mask+))
 
 (defun default-attribute-mask ()
   (logior
-   clyax:CWEventMask
-   clyax:CWColormap
-   clyax:CWBackPixmap
-   ))
+   xlib:+cw-event-mask+
+   xlib:+cw-colormap+
+   xlib:+cw-back-pixmap+))
 
 (defun new-texture-name (&optional (man *manager*))
   (incf (gl-textures-of man)))
@@ -240,13 +203,13 @@
 (defmethod wait-event ((manager <manager>) ev)
   "wait until event will ..."
   (with-foreign-object
-      (event 'clyax::XEvent)
+      (event 'xlib::XEvent)             ;どうすべきか?
     (while t
-      (while (> (clyax:XEventsQueued (display-of manager) 1) 0)
-        (clyax::XNextEvent (display-of manager) event)
-        (let ((type (foreign-slot-value event 'clyax::XEvent 'clyax::type)))
+      (while (> (xlib:events-queued :display (display-of manager)
+                                    :mode 1)
+                0)
+        (xlib:next-event :display (display-of manager) :event event)
+        (let ((type (xlib:event-type event)))
           (if (eq type ev)
               (return-from wait-event t))))
-      (sleep 0.01)
-      )))
-    
+      (sleep 0.01))))

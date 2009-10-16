@@ -20,21 +20,21 @@
   (apply #'log-format (manager-of window) str args))
 
 (defmethod clear-window ((window <window>))
-  (clyax::XClearArea
-   (display-of (manager-of window))
-   (xwindow-of window)
-   0 0
-   (width-of window)
-   (height-of window)
-   t)
-  )
+  (xlib:clear-window
+   :display (display-of (manager-of window))
+   :drawable (xwindow-of window)
+   :x 0 :y 0
+   :width (width-of window)
+   :height (height-of window)
+   :exposurep t))
 
 (defmethod map-window ((window <window>))
   "Mapping a window.
    'map' means 'show window'.
   
    This method is a wrapper of map-window for <window> class."
-  (clyax::XMapWindow (display-of (manager-of window)) (xwindow-of window)))
+  (xlib:map-window :display (display-of (manager-of window))
+                   :drawable (xwindow-of window)))
 
 (defmethod map-widgets ((window <window>))
   "Mapping the widgets of window."
@@ -42,14 +42,13 @@
   ;; so i substitute map-window for map-subwindows
   (iterate:iter
    (iterate:for w in (widgets-of window))
-   (map-window w)
-   )
-  )
+   (map-window w)))
   
 (defmethod unmap-window ((window <window>))
   "Unmapping window.
    This method is a wrapper of unmap-window for <window> class."
-  (clyax::XUnmapWindow (display-of (manager-of window)) (xwindow-of window)))
+  (xlib:unmap-window :display (display-of (manager-of window))
+                     :drawable (xwindow-of window)))
 
 (defun make-window (&key
                     (window-class '<window>)
@@ -86,36 +85,36 @@
       (setf (x-of ret) x)
       (setf (y-of ret) y)
       (setf (xwindow-of ret)
-            (x-create-window
+            (xlib:create-window
              :display (display-of manager)   ;display
              :parent (root-window-of manager) ;parent
              :screen (root-screen-of manager)
              :x x :y y
              :depth depth
-             :width width :height height))
+             :width width :height height
+             :event-mask (default-event-mask)
+             :attribute-mask (default-attribute-mask)))
       ;; create gc
       (setf (gcontext-of ret)
-            (clyax::XCreateGC (display-of manager)
-                              (root-window-of manager)
-                              0
-                              (cffi:null-pointer)))
+            (xlib:create-gc :display (display-of manager)
+                            :drawable (root-window-of manager)))
       (setf (image-array-of ret)
             (foreign-alloc :unsigned-char
                            :count
                            (* (width-of ret) (height-of ret) 4)))
       ;; XImage
       (setf (ximage-of ret)
-            (clyax::XCreateImage              ;memory leak...
-             (display-of manager)
-             (clyax::XDefaultVisual (display-of manager)
-                                    (root-screen-of manager))
-             24
-             clyax::ZPixmap
-             0
-             (image-array-of ret)
-             width height
-             32                                   ;bits-per-pixel
-             0))
+            (xlib:create-image              ;memory leak...
+             :display (display-of manager)
+             :visual (xlib:default-visual :display (display-of manager)
+                       :screen (root-screen-of manager))
+             :depth 24
+             :format xlib:+z-pixmap+
+             :offset 0
+             :data (image-array-of ret)
+             :width width :height height
+             :bitmap-pad 32                                   ;bits-per-pixel
+             :bytes-per-line 0))
       (unless image
         (setf (image-of ret) (make-image :width width
                                          :height height
@@ -123,10 +122,9 @@
                                          :background background
                                          :font font)))
     (add-window manager ret)
-    
     (map-window ret)
     (flush manager)
-    (wait-event manager clyax::Expose)
+    (wait-event manager xlib:+expose+)
     (put-image ret (image-of ret) :flush t)
     (flush manager)
     (log-format ret  "window ~A is created" ret)
@@ -163,15 +161,14 @@
    we use put-image create-image, force-display-output here."
   (update-image-array window) ;content of <image> -> image-array of <window>
   (let ((image (ximage-of window)))
-    (clyax::XPutImage
-     (display-of (manager-of window))   ;display
-     (xwindow-of window)                ;drawable
-     (gcontext-of window)               ;gcontext-of
-     image                              ;ximage
-     0 0                                ;src x, y
-     0 0                                ;dest x. y
-     (width-of window) (height-of window)))
-  ;; destroy image?
+    (xlib:put-image :display (display-of (manager-of window))
+                    :drawable (xwindow-of window)
+                    :gcontext (gcontext-of window)
+                    :image image
+                    :src-x 0 :src-y 0
+                    :dest-x 0 :dest-y 0
+                    :width (width-of window)
+                    :height (height-of window)))
   (if clear (clear-image (image-of window)))
   t)
 
@@ -179,9 +176,9 @@
   "If you want to move window manually,
    you can use this method move.
    I think you have to call flush method in order to actually move the window."
-  (clyax::XMoveWindow (display-of (manager-of win))
-                      (xwindow-of win)
-                      x y)
+  (xlib:move-window :display (display-of (manager-of win))
+                    :drawable (xwindow-of win)
+                    :x x :y y)
   win)
 
 ;; for widget

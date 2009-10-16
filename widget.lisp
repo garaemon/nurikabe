@@ -38,45 +38,47 @@
         ;; ここではまだ、<widget>をつくったにすぎない
         ;; 対応するXのオブジェクトを作る
         (setf (xwindow-of widget)
-              (x-create-window
+              (xlib:create-window
                :display (display-of manager)
                :screen (root-screen-of manager)
                :parent (xwindow-of parent)
                :x x :y y
+               :depth 24                ;addhock
                :border-width 0
                :width width :height height
-               :event-mask (default-event-mask)))
+               :event-mask (default-event-mask)
+               :attribute-mask (default-attribute-mask)))
         (setf (gcontext-of widget)
-              (clyax::XCreateGC (display-of manager)
-                                (xwindow-of widget)
-                                0
-                                (cffi:null-pointer)))
+              (xlib:create-gc :display (display-of manager)
+                              :drawable (xwindow-of widget)))
         (setf (image-array-of widget)
               (foreign-alloc :unsigned-char
                            :count
                            (* width height 4)))
         (setf (ximage-of widget)
-              (clyax::XCreateImage              ;memory leak...
-               (display-of manager)
-               (clyax::XDefaultVisual (display-of manager)
-                                      (root-screen-of manager))
-               24
-               clyax::ZPixmap
-               0
-               (image-array-of widget)
-               width height
-               32                                   ;bits-per-pixel
-               0))
-        (setf (image-of widget) (make-image :width width
-                                            :height height
-                                            :foreground (foreground-of (image-of parent))
-                                            :background (background-of (image-of parent))
-                                            :font font))
+              (xlib:create-image
+               :display (display-of manager)
+               :visual (xlib:default-visual
+                           :display (display-of manager)
+                         :screen (root-screen-of manager))
+               :depth 24
+               :format xlib:+z-pixmap+
+               :offset 0
+               :data (image-array-of widget)
+               :width width :height height
+               :bitmap-pad 32
+               :bytes-per-line 0))
+        (setf (image-of widget)
+              (make-image :width width
+                          :height height
+                          :foreground (foreground-of (image-of parent))
+                          :background (background-of (image-of parent))
+                          :font font))
         ;; parentへwidgetを追加
         (add-widget parent widget)
         (if map (map-window widget))
         (flush manager)
-        (wait-event manager clyax::Expose)
+        (wait-event manager xlib:+expose+)
         ;;(flush manager)
         ;;(render-widget widget)
         (log-format widget "widget ~A is created" widget)

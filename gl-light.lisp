@@ -26,20 +26,19 @@
                  :diffuse diffuse
                  :specular specular
                  :position position))
-  
 
 (defmethod gl-light-id ((light <gl-light>))
-  (+ clyax:GL_LIGHT0 (id-of light)))
+  (+ gl:+light0+ (id-of light)))
 
 (defmethod setup-gl-light ((light <gl-light>))
   (let ((light-id (gl-light-id light)))
-    (gl-light-fv light-id clyax:GL_AMBIENT (ambient-of light))
-    (gl-light-fv light-id clyax:GL_SPECULAR (specular-of light))
-    (gl-light-fv light-id clyax:GL_POSITION (position-of light))
-    (gl-light-fv light-id clyax:GL_DIFFUSE (diffuse-of light))
-    (clyax:glEnable light-id)
+    (gl:light-fv light-id gl:+ambient+ (ambient-of light))
+    (gl:light-fv light-id gl:+specular+ (specular-of light))
+    (gl:light-fv light-id gl:+position+ (position-of light))
+    (gl:light-fv light-id gl:+diffuse+ (diffuse-of light))
+    (gl:enable light-id)
     light-id))
 
 (defmethod enable-gl-light ((light <gl-light>))
-  (clyax:glEnable (gl-light-id light)))
+  (gl:enable (gl-light-id light)))
 
