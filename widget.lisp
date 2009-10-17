@@ -48,6 +48,9 @@
                :width width :height height
                :event-mask (default-event-mask)
                :attribute-mask (default-attribute-mask)))
+        (select-input :display (display-of manager)   ;display
+                    :drawable (xwindow-of widget)
+                    :mask (default-event-mask))
         (setf (gcontext-of widget)
               (xlib:create-gc :display (display-of manager)
                               :drawable (xwindow-of widget)))

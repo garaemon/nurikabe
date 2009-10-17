@@ -72,7 +72,6 @@
                     :depth (xlib:visual-info-depth visual)
                     :class xlib:+input-output+ ;???
                     :attribute-mask (default-attribute-mask)
-                    ;;:visual (xlib:visual-info-visual visual)
                     :visual-info visual
                     :attribute attr)))
         ;; set hints and properties
@@ -84,12 +83,12 @@
                 :set-normal-hints-p t
                 :display display
                 :drawable xwin)))
-          (xlib:set-standard-properties :display display
-                                        :window xwin
-                                        :window-name name
-                                        :icon-name name
-                                        :pixmap xlib:+none+
-                                        :size-hints size-hints)
+;;;           (xlib:set-standard-properties :display display
+;;;                                         :window xwin
+;;;                                         :window-name name
+;;;                                         :icon-name name
+;;;                                         :pixmap xlib:+none+
+;;;                                         :size-hints size-hints)
           (let ((ctx (glx:create-context :display display
                                          :visual-info visual
                                          :directp t)))
@@ -99,11 +98,12 @@
                   (list (cons (chimi:current-thread) ctx)))
             ;; parentへwidgetを追加
             (add-window manager canvas)
-            (when map (map-window canvas))
+            ;;(when map (map-window canvas))
+            (map-window canvas)
             (flush manager)
-            (wait-event manager xlib:+expose+)
+            (wait-event manager xlib:+expose+) ;????
             ;; free C Objects?
-            (xlib:free visual)          
+            (xlib:free visual)
             (glx:make-current :display display
                               :drawable xwin
                               :glx-context ctx)

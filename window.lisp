@@ -94,6 +94,9 @@
              :width width :height height
              :event-mask (default-event-mask)
              :attribute-mask (default-attribute-mask)))
+      (select-input :display (display-of manager)   ;display
+                    :drawable (xwindow-of ret)
+                    :mask (default-event-mask))
       ;; create gc
       (setf (gcontext-of ret)
             (xlib:create-gc :display (display-of manager)
