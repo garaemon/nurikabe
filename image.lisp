@@ -10,13 +10,21 @@
 (in-package #:nurikabe)
 
 (defvar *font-paths*
- #+:darwin
- '(#p"/Library/Fonts/"
-   #p"/System/Library/Fonts/"
-   #p"/usr/X11/lib/X11/fonts/TTF/")
- #+:linux
- '(#p"/usr/share/fonts/truetype/ttf-bitstream-vera/")
- )
+  #+:darwin
+  '(#p"/Library/Fonts/"
+    #p"/System/Library/Fonts/"
+    #p"/usr/X11/lib/X11/fonts/TTF/")
+  #+:linux
+  '(#p"/usr/share/fonts/truetype/ttf-bitstream-vera/"
+    #p"/usr/share/fonts/truetype/ttf-dejavu/")
+  )
+
+(defvar *default-font*
+  #+:darwin
+  "VeraMono.ttf"
+  #+:linux
+  "DejaVuSansMono.ttf"
+  )
 
 ;; for printing
 (defmethod print-object ((image <image>) stream)
@@ -32,7 +40,7 @@
                    (content nil)
                    (foreground :black)
                    (background :white)
-                   (font "VeraMono.ttf"))
+                   (font *default-font*))
   "When you want to make a image, you have to call this function.
    For, there are many messy settings in making a image.
 
@@ -46,7 +54,8 @@
            (setf (width-of ret) (array-dimension ret 1)))
           ((and width height)
            (setf (content-of ret)
-                 (aa-misc:make-image width height (symbol->rgb-vector background)))
+                 (aa-misc:make-image
+                  width height (symbol->rgb-vector background)))
            (setf (width-of ret) width)
            (setf (height-of ret) height))
           (t

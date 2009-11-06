@@ -2,7 +2,6 @@
     :depends-on (chimi cl-vectors
 		 cl-aa-misc cl-vectors zpb-ttf
 		 cl-paths-ttf
-                 cl-jpeg
                  iterate
                  cffi clyax
                  nurarihyon
