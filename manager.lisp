@@ -48,7 +48,7 @@
              (lambda ()
                (xlib:sync :display (display-of *manager*)
                           :discardp t)
-               (while t (event-loop *manager*))))))
+               (while t (event-loop *manager*)))))) ;LOOP
     )
   *manager*)
 
@@ -82,8 +82,8 @@
       (apply #'log-format (logger-of manager) str args)
       t))
 
-(defmacro with-x-serialize ((manager) &rest args)
-  `(chimi:with-mutex ((mutex-of ,manager))
+(defmacro with-x-serialize ((manager &key (lock t)) &rest args)
+  `(chimi:with-mutex ((mutex-of ,manager) :lock ,lock)
      ,@args))
 
 (defmethod add-thread-hook ((manager <manager>) function)
@@ -103,7 +103,7 @@
                 0)
         (xlib:next-event :display (display-of manager) :event event)
         (xlib:event-case
-         event
+         event 
          (xlib:+expose+
           (xlib::x xlib::y xlib::count xlib::window xlib::width xlib::height)
           (with-xlib-window
