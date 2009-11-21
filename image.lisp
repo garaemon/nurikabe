@@ -189,12 +189,14 @@
 
 ;;Aの縦幅で指定することにする
 (defun pixel-font-size->ttf-font-size (pixel-font-size font-loader)
-  (let ((paths (paths-ttf:paths-from-string font-loader "A"
-                                            :offset (paths-ttf::make-point 0 0)
-                                            )))
-    (let ((all-knots (reduce #'append
-                             (mapcar #'(lambda (x) (coerce (paths::path-knots x) 'cons))
-                                     paths))))
+  (let ((paths (paths-ttf:paths-from-string
+                font-loader "A"
+                :offset (paths-ttf::make-point 0 0)
+                )))
+    (let ((all-knots
+           (reduce #'append
+                   (mapcar #'(lambda (x) (coerce (paths::path-knots x) 'cons))
+                           paths))))
       (let ((min-y (apply #'min (mapcar #'cdr all-knots)))
             (max-y (apply #'max (mapcar #'cdr all-knots))))
         (let ((height-in-pixel (- max-y min-y)))
@@ -209,11 +211,12 @@
   (let ((ttf-font-size (pixel-font-size->ttf-font-size
                         font-size
                         (font-loader-of image))))
-    (let ((paths (paths-ttf:paths-from-string (font-loader-of image)
-                                              str
-                                              :offset (paths-ttf::make-point x (+ font-size y))
-                                              :scale-x ttf-font-size
-                                              :scale-y (- ttf-font-size)))
+    (let ((paths (paths-ttf:paths-from-string
+                  (font-loader-of image)
+                  str
+                  :offset (paths-ttf::make-point x (+ font-size y))
+                  :scale-x ttf-font-size
+                  :scale-y (- ttf-font-size)))
           (state (aa:make-state)))
       (let ((put-pixel (aa-misc:image-put-pixel (content-of image)
                                                 (symbol->rgb-vector color))))
@@ -230,9 +233,10 @@
                                             :offset (paths-ttf::make-point x y)
                                             :scale-x font-size
                                             :scale-y (- font-size))))
-    (let ((all-knots (reduce #'append
-                             (mapcar #'(lambda (x) (coerce (paths::path-knots x) 'cons))
-                                     paths))))
+    (let ((all-knots
+           (reduce #'append
+                   (mapcar #'(lambda (x) (coerce (paths::path-knots x) 'cons))
+                           paths))))
       (let ((min-x (apply #'min (mapcar #'car all-knots)))
             (max-x (apply #'max (mapcar #'car all-knots)))
             (min-y (apply #'min (mapcar #'cdr all-knots)))
@@ -294,7 +298,7 @@
       (dotimes (i height)
         (dotimes (j width)
           (dotimes (k step)
-            (setf (cffi:mem-aref to :unsigned-char (+ (* (+ (* i width) j) step) k))
-                  (aref from i j k)))
-            ))))
+            (setf (cffi:mem-aref to :unsigned-char
+                                 (+ (* (+ (* i width) j) step) k))
+                  (aref from i j k)))))))
   to)
