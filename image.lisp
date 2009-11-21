@@ -17,14 +17,15 @@
   #+:linux
   '(#p"/usr/share/fonts/truetype/ttf-bitstream-vera/"
     #p"/usr/share/fonts/truetype/ttf-dejavu/")
-  )
+  "nurikabe search font in *font-paths*")
 
 (defvar *default-font*
   #+:darwin
   "VeraMono.ttf"
   #+:linux
   "DejaVuSansMono.ttf"
-  )
+  "default-font in nurikabe.
+   nurikabe only supports the fixed-width fonts")
 
 ;; for printing
 (defmethod print-object ((image <image>) stream)
@@ -43,7 +44,7 @@
                    (font *default-font*))
   "When you want to make a image, you have to call this function.
    For, there are many messy settings in making a image.
-
+   
    <image> class is the most basic class in nurikabe package.
    If you want to show some drawings, you have to access <image> class."
   (let ((ret (make-instance '<image>)))
@@ -111,7 +112,9 @@
 
 (defmethod draw-polygon ((image <image>) points &key (color :black))
   "draw a polygon.
-   The points must be a CCW."
+   The points must be a CCW.
+
+   You can set the color of line by :color keyword."
   (let ((state (aa:make-state)))
     (mapcar #'(lambda (from to)
                 (aa:line-f state (car from) (cadr from)
@@ -189,10 +192,11 @@
 
 ;;Aの縦幅で指定することにする
 (defun pixel-font-size->ttf-font-size (pixel-font-size font-loader)
+  "Convert from pixel-font-size to ttf-font-size.
+   It use #\A as a representation character."
   (let ((paths (paths-ttf:paths-from-string
                 font-loader "A"
-                :offset (paths-ttf::make-point 0 0)
-                )))
+                :offset (paths-ttf::make-point 0 0))))
     (let ((all-knots
            (reduce #'append
                    (mapcar #'(lambda (x) (coerce (paths::path-knots x) 'cons))
@@ -200,28 +204,77 @@
       (let ((min-y (apply #'min (mapcar #'cdr all-knots)))
             (max-y (apply #'max (mapcar #'cdr all-knots))))
         (let ((height-in-pixel (- max-y min-y)))
-          (abs (/ (float pixel-font-size) (float height-in-pixel))))))))
+           (abs (/ (float pixel-font-size) (float height-in-pixel))))))))
+
+(defmethod %draw-string ((image <image>)
+                         str
+                         x y             ;左上の点
+                         &key
+                         (color :black)
+                         (font-size 10)
+                         (ttf-font-size 0.1)) ;in pixel
+  (let ((paths (paths-ttf:paths-from-string
+                (font-loader-of image)
+                str
+                :offset (paths-ttf::make-point x (+ font-size y))
+                :scale-x ttf-font-size
+                :scale-y (- ttf-font-size)))
+        (state (aa:make-state)))
+    (let ((put-pixel (aa-misc:image-put-pixel (content-of image)
+                                              (symbol->rgb-vector color))))
+      (aa:cells-sweep (vectors::update-state state paths) put-pixel)
+      image)))
+
+(defun ttf-font-size->pixel-font-width (ttf-font-size font-loader)
+  (let ((paths (paths-ttf:paths-from-string
+                font-loader "A"
+                :scale-x ttf-font-size
+                :scale-y (- ttf-font-size)
+                :offset (paths-ttf::make-point 0 0))))
+    (let ((all-knots
+           (reduce #'append
+                   (mapcar #'(lambda (x) (coerce (paths::path-knots x) 'cons))
+                           paths))))
+      (let ((min-x (apply #'min (mapcar #'car all-knots)))
+            (max-x (apply #'max (mapcar #'car all-knots))))
+        (let ((width-in-pixel (- max-x min-x)))
+          width-in-pixel)))))
 
 (defmethod draw-string ((image <image>)
                         str
                         x y             ;左上の点
                         &key
                         (color :black)
+                        (auto-newline t)
                         (font-size 10)) ;in pixel
   (let ((ttf-font-size (pixel-font-size->ttf-font-size
-                        font-size
-                        (font-loader-of image))))
-    (let ((paths (paths-ttf:paths-from-string
-                  (font-loader-of image)
-                  str
-                  :offset (paths-ttf::make-point x (+ font-size y))
-                  :scale-x ttf-font-size
-                  :scale-y (- ttf-font-size)))
-          (state (aa:make-state)))
-      (let ((put-pixel (aa-misc:image-put-pixel (content-of image)
-                                                (symbol->rgb-vector color))))
-        (aa:cells-sweep (vectors::update-state state paths) put-pixel)
-        image))))
+                                font-size
+                                (font-loader-of image))))
+    (if auto-newline
+        (let* ((image-width (width-of image))
+               (rest-width (- image-width x))
+               (character-width (ttf-font-size->pixel-font-width
+                                 ttf-font-size (font-loader-of image)))
+               (string-length (* character-width (length str))))
+          (let ((line-num (ceiling (/ string-length rest-width)))
+                (chars-per-line (floor (/ rest-width character-width))))
+            (dotimes (i line-num)
+              (let* ((yy (+ y (* i font-size)))
+                     (start-index (* i chars-per-line))
+                     (end-index (+ start-index chars-per-line))
+                     (%str (subseq str
+                                   start-index
+                                   (if (> end-index (length str))
+                                       (length str)
+                                       end-index))))
+                (%draw-string image %str x yy
+                              :color color
+                              :font-size font-size
+                              :ttf-font-size ttf-font-size)))))
+        (%draw-string image str x y
+                      :color color
+                      :font-size font-size
+                      :ttf-font-size ttf-font-size))))
 
 (defmethod drawn-string-bounding-box ((font ZPB-TTF::FONT-LOADER)
                                       str
@@ -250,7 +303,9 @@
                               str
                               &key
                               (font-size 0.015))
-  (let ((bbox (drawn-string-bounding-box font str 0 0 :font-size font-size)))
+  (let ((bbox (drawn-string-bounding-box font str
+                                         0 0 ;dummy
+                                         :font-size font-size)))
       (let ((min-x (cdr (assoc :min-x bbox)))
             (max-x (cdr (assoc :max-x bbox)))
             (min-y (cdr (assoc :min-y bbox)))
