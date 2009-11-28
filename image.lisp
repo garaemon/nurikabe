@@ -1,8 +1,9 @@
-;;====================================================================
+;;================================================
 ;; image.lisp
-;; 
-;;                               written by R.Ueda(garaemon@gmail.net)
-;;====================================================================
+;;
+;; this code provides <image> class and methods.
+;; written by R.Ueda (garaemon)
+;;================================================
 
 (declaim (optimize (debug 3)
 		   (safety 3)))
@@ -29,6 +30,7 @@
 
 ;; for printing
 (defmethod print-object ((image <image>) stream)
+  "print width and height when <image> printing."
   (print-unreadable-object (image stream :type t :identity t)
     (format stream "~Ax~A"
             (width-of image)
@@ -161,8 +163,7 @@
                         (- height (* 2 line-width))
                         :color (background-of image)
                         :angle angle
-                        :fill t)
-        ))
+                        :fill t)))
   image)
 
 (defmethod draw-circle ((image <image>)
@@ -255,22 +256,22 @@
                (rest-width (- image-width x))
                (character-width (ttf-font-size->pixel-font-width
                                  ttf-font-size (font-loader-of image)))
-               (string-length (* character-width (length str))))
-          (let ((line-num (ceiling (/ string-length rest-width)))
-                (chars-per-line (floor (/ rest-width character-width))))
-            (dotimes (i line-num)
-              (let* ((yy (+ y (* i font-size)))
-                     (start-index (* i chars-per-line))
-                     (end-index (+ start-index chars-per-line))
-                     (%str (subseq str
-                                   start-index
-                                   (if (> end-index (length str))
-                                       (length str)
-                                       end-index))))
-                (%draw-string image %str x yy
-                              :color color
-                              :font-size font-size
-                              :ttf-font-size ttf-font-size)))))
+               (string-length (* character-width (length str)))
+               (line-num (ceiling (/ string-length rest-width)))
+               (chars-per-line (floor (/ rest-width character-width))))
+          (dotimes (i line-num)
+            (let* ((yy (+ y (* i font-size)))
+                   (start-index (* i chars-per-line))
+                   (end-index (+ start-index chars-per-line))
+                   (%str (subseq str
+                                 start-index
+                                 (if (> end-index (length str))
+                                     (length str)
+                                     end-index))))
+              (%draw-string image %str x yy
+                            :color color
+                            :font-size font-size
+                            :ttf-font-size ttf-font-size))))
         (%draw-string image str x y
                       :color color
                       :font-size font-size
