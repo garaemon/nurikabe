@@ -8,9 +8,9 @@
 		   (safety 3)))
 
 (in-package :nurikabe)
-
-;;(eval-when (:compile-toplevel)
-  (defvar *color-table*
+(eval-when (:compile-toplevel)
+  (nh:enable-nurarihyon-reader-syntax))
+(alexandria:define-constant +color-table+
     (list (CONS :SNOW  #(254 249 249))
           (CONS :GHOSTWHITE  #(247 247 254))
           (CONS :WHITESMOKE  #(244 244 244))
@@ -924,13 +924,32 @@
           (CONS   :INTENSITY-253 #(253 253 253))
           (CONS   :INTENSITY-254 #(254 254 254))
           (CONS   :INTENSITY-255 #(255 255 255))
-          ))
-;;  )
+          )
+  :test #'(lambda (x y) (equal (mapcar #'car x) (mapcar #'car y)))
+  )
 
 (defun symbol->rgb-vector (sym)
   "combarts keyword to rgb vector."
   (declare (type (or string symbol) sym))
-  (let ((ret (assoc sym *color-table*)))
-    (if ret
-        (cdr ret)
-        nil)))
+  (let ((ret (assoc sym +color-table+)))
+    (cdr ret)))
+
+(defun rgb-vector->pixel-value (vec)
+  "pixel value = #xGGRRBB, vec = #(R G B)"
+  (+ (* 256 256 [vec 0]) (* 256 [vec 1]) [vec 2]))
+
+(defun symbol->pixel-value (sym)
+  (rgb-vector->pixel-value (symbol->rgb-vector sym)))
+
+(defun find-color (val)
+  "returns pixel value"
+  (cond
+    ((arrayp val)
+     (rgb-vector->pixel-value val))
+    ((symbolp val)
+     (symbol->pixel-value val))
+    ((integerp val)
+     val)))
+
+(eval-when (:compile-toplevel)
+  (nh:disable-nurarihyon-reader-syntax))

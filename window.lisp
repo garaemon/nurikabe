@@ -5,7 +5,8 @@
 ;; 
 ;;  written by R.Ueda(garaemon@gmail.net)
 ;;========================================
-(declaim (optimize (debug 3) (safety 3)))
+(declaim (optimize (debug 3)
+                   (safety 3)))
 
 (in-package #:nurikabe)
 
@@ -16,7 +17,7 @@
             (name-of window)
             (width-of window) (height-of window))))
 
-(defmethod log-format ((window <window>) (str string) &rest args)
+(defmethod log-format ((window <window-core>) (str string) &rest args)
   (apply #'log-format (manager-of window) str args))
 
 (defmethod clear-window ((window <window>))
@@ -28,11 +29,10 @@
    :height (height-of window)
    :exposurep t))
 
-(defmethod map-window ((window <window>))
+(defmethod map-window ((window <window-core>))
   "Mapping a window.
-   'map' means 'show window'.
-  
-   This method is a wrapper of map-window for <window> class."
+'map' means 'show window'.
+ This method is a wrapper of map-window in xlib for <window> class."
   (xlib:map-window :display (display-of (manager-of window))
                    :drawable (xwindow-of window)))
 
@@ -44,7 +44,7 @@
    (iterate:for w in (widgets-of window))
    (map-window w)))
   
-(defmethod unmap-window ((window <window>))
+(defmethod unmap-window ((window <window-core>))
   "Unmapping window.
    This method is a wrapper of unmap-window for <window> class."
   (xlib:unmap-window :display (display-of (manager-of window))
@@ -52,142 +52,71 @@
 
 (defun make-window (&key
                     (window-class '<window>)
-                    (image nil)         ;image = <image>?
-                    (width 300)
-                    (height 200)
-                    (x 100)
-                    (y 100)
+                    (width 300) (height 200) ;size
+                    (x 100) (y 100)     ;position
                     (depth 24)
                     (manager *manager*)
-                    (font "VeraMono.ttf")
-                    (foreground :black)
-                    (background :white)
-                    (name ""))
+                    (foreground :black) (background :white)
+                    (name "nurikabe"))          ;title
   "When you want to make a window, you have to call this function.
-   For, there are some messy settings in making a window.
-
-   You can use the :image keyword when you already have a
-   <image> instance to draw. If you don't use :image keyword,
-   <image> instance will be created using :width and :height keyword.
-
-   In some architectures, :x and :y may not work well.
-   (Such as Mac OS X.)"
+For, there are some messy settings in making a window.
+"
   (let ((ret (make-instance window-class :manager manager :name name)))
-    (cond (image
-           (setf (height-of ret) (height-of image))
-           (setf (width-of ret) (width-of image)))
-          ((and width height)
-           (setf (height-of ret) height)
-           (setf (width-of ret) width))
-          (t
-           (error "width and heigt, or image is required")))
+    (if (and width height)           ;if width and height specified
+        (progn (setf (height-of ret) height)
+               (setf (width-of ret) width))
+        (error "width and heigt, or image is required"))
+    (setf (x-of ret) x (y-of ret) y (background-of ret) background)
     (with-x-serialize (manager)
-      (setf (x-of ret) x)
-      (setf (y-of ret) y)
       (setf (xwindow-of ret)
             (xlib:create-window
              :display (display-of manager)   ;display
              :parent (root-window-of manager) ;parent
              :screen (root-screen-of manager)
-             :x x :y y
-             :depth depth
-             :width width :height height
+             :x x :y y                  ;position
+             :depth depth :width width :height height
+             :background-pixel (symbol->pixel-value background)
              :event-mask (default-event-mask)
              :attribute-mask (default-attribute-mask)))
-      (xlib:select-input :display (display-of manager)   ;display
+      (xlib:select-input :display (display-of manager) ;display
                          :drawable (xwindow-of ret)
                          :mask (default-event-mask))
+      (xlib:store-name :display (display-of manager) ;title
+                       :drawable (xwindow-of ret)
+                       :title name)
       ;; create gc
       (setf (gcontext-of ret)
             (xlib:create-gc :display (display-of manager)
                             :drawable (root-window-of manager)))
-      (setf (image-array-of ret)
-            (foreign-alloc :unsigned-char
-                           :count
-                           (* (width-of ret) (height-of ret) 4)))
-      ;; XImage
-      (setf (ximage-of ret)
-            (xlib:create-image              ;memory leak...
-             :display (display-of manager)
-             :visual (xlib:default-visual :display (display-of manager)
-                       :screen (root-screen-of manager))
-             :depth 24
-             :format xlib:+z-pixmap+
-             :offset 0
-             :data (image-array-of ret)
-             :width width :height height
-             :bitmap-pad 32                                   ;bits-per-pixel
-             :bytes-per-line 0))
-      (unless image
-        (setf (image-of ret) (make-image :width width
-                                         :height height
-                                         :foreground foreground
-                                         :background background
-                                         :font font)))
-    (add-window manager ret)
-    (map-window ret)
-    (flush manager)
-    (wait-event manager xlib:+expose+)
-    (put-image ret (image-of ret) :flush t)
-    (flush manager)
-    (log-format ret  "window ~A is created" ret)
-    ret)))
+      (add-window manager ret)      ;add to manager
+      (map-window ret)              ;mapping
+      (flush manager)               ;tell mapping of winow to x server
+      (log-format ret  "window ~A is created" ret)
+      ;; TODO: setup finalizer
+      ret)))
 
-(defmethod put-image ((window <window>)
-                      (image <image>)
-                      &key
-                      (flush nil))
-  "This method only set the image slot of window.
-   Do'not bother with put-image.
-   If you want to draw image to the window, you just set :flush t or
-   call flush method."
-  (setf (image-of window) image)
-  (if flush (flush-window window))
-  t)
-
-(defmethod get-image ((window <window>) &optional (buffer nil))
-  "copy <image> from <window> instance."
-  (copy-image (image-of window) buffer))
-
-(defmethod update-image-array ((window <window>))
-  "copy content of <image>, that is a #3A simple array,
-   to image-array of <window>, that is a #1A simple array."
-  (let ((from (image-of window))
-        (to (image-array-of window)))
-    (fill-c-array from to 4)
-    window))
-
-(defmethod flush-window ((window <window>) &key (clear nil))
-  "In this flush-window method, image-array is copied from image and
-   draw image to window.
-   
-   we use put-image create-image, force-display-output here."
-  (update-image-array window) ;content of <image> -> image-array of <window>
-  (let ((image (ximage-of window)))
-    (xlib:put-image :display (display-of (manager-of window))
-                    :drawable (xwindow-of window)
-                    :gcontext (gcontext-of window)
-                    :image image
-                    :src-x 0 :src-y 0
-                    :dest-x 0 :dest-y 0
-                    :width (width-of window)
-                    :height (height-of window)))
-  (if clear (clear-image (image-of window)))
-  t)
+(defmethod flush ((window <window>))
+  "Flush window."
+  (flush (manager-of window)))
 
 (defmethod move ((win <window>) x y)
   "If you want to move window manually,
-   you can use this method move.
-   I think you have to call flush method in order to actually move the window."
+   you can use this method move."
   (xlib:move-window :display (display-of (manager-of win))
                     :drawable (xwindow-of win)
                     :x x :y y)
   win)
 
+(defmethod set-background-color ((win <window>) color)
+  "Currently does not work..."
+  (xlib:set-window-background
+   :display (display-of (manager-of win))
+   :drawable (xwindow-of win)
+   :color (find-color color)))
+
 ;; for widget
 (defmethod add-widget ((win <window>) (widget <widget>))
-  (push widget (widgets-of win))
-  (add-window (manager-of win) widget))
+  (push widget (widgets-of win)))
   
 (defmethod delete-widgets ((win <window>) &key (flush nil))
   (let ((widgets (widgets-of win)))
@@ -200,16 +129,25 @@
                      (windows-of (manager-of win))))
     (log-format win "delete widgets of ~A" win)
     (when flush
-      (flush (manager-of win))
-      )
+      (flush (manager-of win)))
     t))
+
+(defmethod delete-widget ((win <window>) (target <widget>))
+  "delete target widgets"
+  (setf (widgets-of win) (remove target (widgets-of win)))
+  win)
+
+(defmethod delete-widget ((win <window>) (name string))
+  (setf (widgets-of win) (remove-if #'(lambda (x) (string= name (name-of x)))
+                                    (widgets-of win)))
+  win)
 
 (defmethod render-widgets ((win <window>) &key (flush t))
   "rendering widgets of window.
   
   The order of widgets, slot of <window>,
   is reversed, so we have to render the widgets in reversed order."
-  (dolist (w (reverse (widgets-of win)))
+  (dolist (w (widgets-of win))
     (log-format win ":render-widget of ~A is called" w)
     (render-widget w)))
 
@@ -220,20 +158,28 @@
         (return-from find-widget-region w))))
 
 ;; callbacks
+(defmethod exposure-callback ((win <window-core>) x y width height count)
+  t)
+
+(defmethod resize-callback ((win <window-core>) width height)
+  t)
+
+(defmethod button-press-callback ((win <window-core>) x y)
+  t)
+
+(defmethod button-release-callback ((win <window-core>) x y)
+  t)
+
+(defmethod motion-notify-callback ((win <window-core>) x y code)
+  t)
+
+(defmethod configure-notify-callback ((win <window-core>) x y width height)
+  t)
+
+(defmethod leave-notify-callback ((win <window-core>))
+  t)
+
 (defmethod exposure-callback ((win <window>) x y width height count)
-  t)
-
-(defmethod resize-callback ((win <window>) width height)
-  t)
-
-(defmethod button-press-callback ((win <window>) x y)
-  t)
-
-(defmethod button-release-callback ((win <window>) x y)
-  t)
-
-(defmethod motion-notify-callback ((win <window>) x y code)
-  t)
-
-(defmethod configure-notify-callback ((win <window>) x y width height)
+  ;; need to re-render ...
+  (render-widgets win)
   t)

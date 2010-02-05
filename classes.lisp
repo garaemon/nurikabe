@@ -37,7 +37,8 @@
 
 (defclass* <manager>
     ()
-  ((windows nil)                  ;the list of <window>( and <widget>)
+  ((windows nil)                  ;the list of <window>
+   (widgets nil)                  ;the list of <widget>
    (display nil)                  ;xwindow's display
    (root-screen nil)              ;xwindow's root screen
    (root-window nil)              ;xwindow's root window
@@ -46,25 +47,35 @@
    (current-gl-context nil)       ;for gl:makecrrent
    (gl-textures 0)                ;for substituing for glGenTexture
    (event-thread nil)             ;subthread which runs event-loop
-   (thread-hooks nil)
-   (xevent nil)
+   (thread-hooks nil)             ;event-thread hook
+   (xevent nil)                   ;c object of xevent for reducing allocation
    (mutex (make-mutex))))         ;mutex for event-loop in subthread
 
-(defclass* <window>
+;; window-core
+;;     +---> window
+;;     +---> widget
+;;              +---> image-widget
+;;                        +---> text-widget
+;;                        +---> button-widget
+
+(defclass* <window-core>
     ()
-  ((width nil)                     ;width of window
-   (height nil)                    ;height of window
-   (name "")                       ;title of window
-   (image nil)                     ;instance of <image>
-   (image-array nil)               ;simple array of (unsigned 8). #1A.
-   (gcontext nil)                  ;graphics context
-   (manager nil)                   ;reference to manager
-   (xwindow nil)                   ;for x window
-   (ximage nil)                    ;instance of XImage
-   (x nil)                         ;x position in display
-   (y nil)                         ;y position in display
-   (widgets nil)                   ;the list of <widgets>
-   ))
+  ((width nil) (height nil)             ;size of window
+   (name "")                            ;title of window
+   (gcontext nil)                       ;graphics context
+   (x nil) (y nil)                      ;position of window
+   (manager nil)                        ;reference to manager
+   (background nil)                     ;background color
+   (xwindow nil))                       ;for x window
+  (:documentation
+   "superclass of <window> and <widget>"))
+
+(defclass* <window>
+    (<window-core>)
+  ((widgets nil))                       ;the list of <widgets>
+  (:documentation
+   "<window> class is a container of <widget>.
+any contents in <window> is must be realized through <widget>."))
 
 (defclass* <image>
     ()
@@ -77,7 +88,6 @@
    (font-loader nil)))                  ;font manager
 
 ;; <packing-box> classes
-
 (defclass* <packing-box>
     ()
   ((boxes nil)                          ;
@@ -94,21 +104,26 @@
   ())
 
 ;; <widget> classes
-
 (defclass* <widget>
-    (<window>)
-  ((parent nil)                         ;
-   (debugp nil))                        ;
-  (:documentation
-   "There are some limitations in <widget>
-    
-    -- widget must be a rectangle."
-   ))
+    (<window-core>)
+  ((parent nil)                         ;parent window or widget
+   (window nil)                         ;relation to <window>
+   (debugp nil))                        ;debugging flag
+  )
+
+(defclass* <image-widget>
+    (<widget>)
+  ((image nil)                          ;an instance of <image>
+   (ximage nil)                         ;a c object
+   (image-array nil)                    ;c content of ximage
+   )
+  )
 
 (defclass* <button-widget>
-    (<widget>)
-  ((button-state nil)                   ;
-   (button-region nil))                 ;
+    (<image-widget>)
+  ((button-state nil)
+   (button-size 0.5d0)
+   (button-region nil)) ;(left-up-x left-up-y right-down-x right-down-y)
   )
 
 (defclass* <toggle-button-widget>
@@ -126,10 +141,12 @@
 
 (defclass* <click-button-widget>
     (<button-widget>)
-  ((display-string "")                  ;
-   (press-callback nil)                 ;
-   (display-string-margin nil)          ;
-   (font-size nil))                     ;
+  ((display-string "")                  ;string of button
+   (button-callback nil)                ;callback function
+   (button-color :skyblue)              ;button color
+   (pressed-color :blue)
+   (string-draw-point nil)              ;(x y)
+   (button-font-size 10))               ;font size of display-text
   (:documentation
    "just a simple button.
 

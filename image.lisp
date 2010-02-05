@@ -18,7 +18,7 @@
   #+:linux
   '(#p"/usr/share/fonts/truetype/ttf-bitstream-vera/"
     #p"/usr/share/fonts/truetype/ttf-dejavu/")
-  "nurikabe search font in *font-paths*")
+  "nurikabe search fonts in *font-paths*")
 
 (defvar *default-font*
   #+:darwin
@@ -136,8 +136,8 @@
                            (line-width 1.0)
                            (angle nil)  ;for rotating
                            (round nil)
-                           (round-x nil)
-                           (round-y nil))
+                           (round-x round)
+                           (round-y round))
   (if fill
       (let ((paths (paths:make-rectangle-path x y
                                               (+ width x) (+ height y)
@@ -196,16 +196,16 @@
   "Convert from pixel-font-size to ttf-font-size.
    It use #\A as a representation character."
   (let ((paths (paths-ttf:paths-from-string
-                font-loader "A"
+                font-loader "AA"
                 :offset (paths-ttf::make-point 0 0))))
     (let ((all-knots
            (reduce #'append
                    (mapcar #'(lambda (x) (coerce (paths::path-knots x) 'cons))
                            paths))))
-      (let ((min-y (apply #'min (mapcar #'cdr all-knots)))
-            (max-y (apply #'max (mapcar #'cdr all-knots))))
-        (let ((height-in-pixel (- max-y min-y)))
-           (abs (/ (float pixel-font-size) (float height-in-pixel))))))))
+      (let ((min-x (apply #'min (mapcar #'car all-knots)))
+            (max-x (apply #'max (mapcar #'car all-knots))))
+        (let ((width-in-pixel (/ (- max-x min-x) 2.0)))
+          (abs (/ (float pixel-font-size) (float width-in-pixel))))))))
 
 (defmethod %draw-string ((image <image>)
                          str
@@ -226,41 +226,38 @@
       (aa:cells-sweep (vectors::update-state state paths) put-pixel)
       image)))
 
-(defun ttf-font-size->pixel-font-width (ttf-font-size font-loader)
-  (let ((paths (paths-ttf:paths-from-string
-                font-loader "A"
-                :scale-x ttf-font-size
-                :scale-y (- ttf-font-size)
-                :offset (paths-ttf::make-point 0 0))))
-    (let ((all-knots
-           (reduce #'append
-                   (mapcar #'(lambda (x) (coerce (paths::path-knots x) 'cons))
-                           paths))))
-      (let ((min-x (apply #'min (mapcar #'car all-knots)))
-            (max-x (apply #'max (mapcar #'car all-knots))))
-        (let ((width-in-pixel (- max-x min-x)))
-          width-in-pixel)))))
+(defmethod characters-in-line ((image <image>) str font-size
+                               &key (x 0) (y 0) (-x 0))
+  (declare (ignore y))
+  (let ((ttf-font-size (pixel-font-size->ttf-font-size
+                        font-size (font-loader-of image))))
+    (let* ((image-width (width-of image))
+           (rest-width (- (- image-width x) -x))
+           (character-width (ttf-font-size->pixel-font-width
+                              ttf-font-size (font-loader-of image)))
+           (character-height (ttf-font-size->pixel-font-height
+                              ttf-font-size (font-loader-of image)))
+           (string-length (* character-width (length str)))
+           (line-num (ceiling (/ string-length rest-width)))
+           (chars-per-line (floor (/ rest-width character-width))))
+      (values line-num chars-per-line character-height))))
 
 (defmethod draw-string ((image <image>)
                         str
                         x y             ;左上の点
                         &key
                         (color :black)
+                        (-x 0)
                         (auto-newline t)
                         (font-size 10)) ;in pixel
   (let ((ttf-font-size (pixel-font-size->ttf-font-size
-                                font-size
-                                (font-loader-of image))))
+                        font-size
+                        (font-loader-of image))))
     (if auto-newline
-        (let* ((image-width (width-of image))
-               (rest-width (- image-width x))
-               (character-width (ttf-font-size->pixel-font-width
-                                 ttf-font-size (font-loader-of image)))
-               (string-length (* character-width (length str)))
-               (line-num (ceiling (/ string-length rest-width)))
-               (chars-per-line (floor (/ rest-width character-width))))
+        (multiple-value-bind (line-num chars-per-line char-height)
+            (characters-in-line image str font-size :x x :y y :-x -x)
           (dotimes (i line-num)
-            (let* ((yy (+ y (* i font-size)))
+            (let* ((yy (+ y (* i char-height)))
                    (start-index (* i chars-per-line))
                    (end-index (+ start-index chars-per-line))
                    (%str (subseq str
@@ -333,23 +330,37 @@
     to))
 
 (defmethod fill-c-array ((image <image>) to &optional (step 3))
-  (with-slots
-        (width height)
-      image
-    (let ((from (content-of image)))
+  "copy content of image to flat c array."
+  (with-slots (width height) image
+    (let ((from (content-of image))
+          ;; rgb specification
+          ;; from ... (r g b)
+          ;; to  ...  (b g r)
+          (from-green-index 1)
+          (to-green-index 1)
+          (from-red-index 0)
+          (to-red-index 2)
+          (from-blue-index 2)
+          (to-blue-index 0))
       (dotimes (j width)
         (dotimes (i height)
-          (setf (mem-aref to :unsigned-char (+ (* (+ (* i width) j) step) 0))
-                (aref from i j 0))
-          (setf (mem-aref to :unsigned-char (+ (* (+ (* i width) j) step) 1))
-                (aref from i j 1))
-          (setf (mem-aref to :unsigned-char (+ (* (+ (* i width) j) step) 2))
-                (aref from i j 2))))
+          (let ((target-pixel-index (* (+ (* i width) j) step)))
+            ;; red
+            (setf (mem-aref to :unsigned-char
+                            (+ target-pixel-index to-red-index))
+                  (aref from i j from-red-index))
+            ;; green
+            (setf (mem-aref to :unsigned-char
+                            (+ target-pixel-index to-green-index))
+                  (aref from i j from-green-index))
+            ;; blue
+            (setf (mem-aref to :unsigned-char
+                            (+ target-pixel-index to-blue-index))
+                  (aref from i j from-blue-index)))))
       to)))
 
 (defmethod fill-c-array-reverse ((image <image>) to &optional (step 3))
-  (with-slots (width height)
-      image
+  (with-slots (width height) image
     (let ((from (content-of image)))
       (dotimes (i height)
         (dotimes (j width)

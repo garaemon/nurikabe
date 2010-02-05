@@ -19,12 +19,9 @@
 
 (in-package #:nurikabe)
 
-;; <manager>のインスタンスは必ずこの*manager*
-;; にバインドされる
-(defvar *manager* nil)
+(defvar *manager* nil
+  "an instance of <manager> is always bind to this symbol.")
 
-;; nurikabeの初期化関数. XWindowをオープンして,
-;; <manager>のインスタンスを作る.
 (defun init-gui (&key (loggingp nil) (threadingp t))
   "Initialize function for NURIKABE package.
    This function must be called before any nurikabe process.
@@ -46,38 +43,34 @@
       (setf (event-thread-of *manager*)
             (chimi:make-thread
              (lambda ()
-               (xlib:sync :display (display-of *manager*)
-                          :discardp t)
+               (xlib:sync :display (display-of *manager*) :discardp t)
                (while t (event-loop *manager*)))))) ;LOOP
     )
   *manager*)
 
-;; xlibパッケージのwindowをnurikabeパッケージ<window>へ
-;; 変換する.
 (defmethod xlib-window->window ((manager <manager>) win)
   "convert window of xwindow to <window> instance."
-  (find (cffi:pointer-address win) (windows-of manager)
+  (find (cffi:pointer-address win)
+        (append (windows-of manager) (widgets-of manager))
         :key #'(lambda (x) (cffi:pointer-address (xwindow-of x)))))
 
-(defmacro with-xlib-window (params &rest bodies)
+(defmacro with-xlib-window ((symbol xwindow manager) &rest bodies)
   "exec bodies if the window exists.
 
   params a list like (symbol xwindow manager)"
-  (let ((xwin (gensym))
-        (manager (gensym)))
-    `(let* ((,manager ,(caddr params))
-            (,xwin (xlib-window->window ,manager ,(cadr params))))
-       (let ((,(car params) ,xwin))
-           (if ,xwin
-               (progn ,@bodies))))))
+  (let ((xwin (gensym)))
+    `(let* ((,xwin (xlib-window->window ,manager ,xwindow)))
+       (let ((,symbol ,xwin))
+         (if ,xwin
+             (progn ,@bodies))))))
 
 ;; XWindowをflushする.
 (defmethod flush ((man <manager>))
   "Flush XWindow output."
   (xlib:flush :display (display-of man)))
 
-;; managerにログを書き込む.
 (defmethod log-format ((manager <manager>) str &rest args)
+  "write log to manager"
   (if (loggingp-of manager)
       (apply #'log-format (logger-of manager) str args)
       t))
@@ -87,95 +80,116 @@
      ,@args))
 
 (defmethod add-thread-hook ((manager <manager>) function)
+  "add thread hook to manager.
+   function must be a function takes 0 arguments"
   (with-x-serialize (manager)
     (push function (thread-hooks-of manager))))
 
-;; このメソッドはsubthreadで周期的に呼ばれる.
-;; 各種イベントに対して適切なcallbackを呼び出す.
-;; callbackは(mutex-of manager)がかかった状態で呼び
-;; 出されることに注意.
-;; イベントを処理した後に全てのwidgetを描画し直す.
+(defmethod clear-thread-hook ((manager <manager>))
+  "clear thread hook of manager"
+  (with-x-serialize (manager)
+    (setf (thread-hooks-of manager) nil)))
+
+(defmethod has-event-que-p ((manager <manager>))
+  (> (xlib:events-queued :display (display-of manager)
+                         :mode 1) ;1??
+     0))
+
+(defmethod proc-event ((manager <manager>))
+  (xlib:next-event :display (display-of manager) :event (xevent-of manager)))
+
+(eval-when (:compile-toplevel)
+  ;; apis := (api)
+  ;; api := (event win-sym slots bodies ...)
+  (defvar *event-callback-apis* nil)
+  (defmacro defmanager-event (event win-sym slots &rest bodies)
+    `(push (cons ,event (list ',win-sym ',slots ',bodies))
+           *event-callback-apis*))
+  
+  (defmanager-event xlib:+expose+
+      win (xlib::x xlib::y xlib::count xlib::window xlib::width xlib::height)
+      (exposure-callback win xlib::x xlib::y
+                         xlib::width xlib::height
+                         xlib::count))
+  
+  (defmanager-event xlib:+resize-request+
+      win (xlib::width xlib::height xlib::window)
+      (resize-callback win xlib::width xlib::height))
+  
+  (defmanager-event xlib:+motion-notify+
+      win (xlib::x xlib::y xlib::window xlib::x_root xlib::y_root)
+      (motion-notify-callback win xlib::x xlib::y nil))
+
+  (defmanager-event xlib:+button-press+
+      win (xlib::x xlib::y xlib::window xlib::x_root xlib::y_root)
+      (button-press-callback win xlib::x xlib::y))
+
+  (defmanager-event xlib:+button-release+
+      win (xlib::x xlib::y xlib::window xlib::x_root xlib::y_root)
+      (button-release-callback win xlib::x xlib::y))
+  
+  (defmanager-event xlib:+configure-notify+
+      win (xlib::x xlib::y xlib::window xlib::width xlib::height)
+      (configure-notify-callback win xlib::x xlib::y
+                                 xlib::width xlib::height))
+  
+  (defmanager-event xlib:+enter-notify+
+      win ()
+      t)
+
+  (defmanager-event xlib:+leave-notify+
+      win (xlib::window)
+      (leave-notify-callback win)
+      t)
+  
+  
+  (defmacro dispatch-and-call-event (manager event)
+    `(xlib:event-case
+      ,event
+      ,@(mapcar #'(lambda (api)
+                    `(,(car api)
+                       ,(caddr api)
+                       (with-xlib-window
+                           (,(cadr api) xlib::window ,manager)
+                         ;; format to log
+                         (log-format ,manager "~s event is occured"
+                                     ',(car api))
+                         ,@(cadddr api))))
+                *event-callback-apis*)))
+  )
+
 (defmethod event-loop ((manager <manager>))
+  "this method event-loop is called cyclicly in event-thread.
+It calls the proper callback methods according to the event.
+
+all of the callback is called in mutex lock.
+
+flow of event-loop is:
+1. call callback methods according to the events.
+2. call thrad hook functions.
+3. call flush window for all of the windows"
   (let ((event (xevent-of manager)))
     (with-x-serialize (manager)
-      (while (> (xlib:events-queued :display (display-of manager)
-                                    :mode 1) ;1??
-                0)
-        (xlib:next-event :display (display-of manager) :event event)
-        (xlib:event-case
-         event 
-         (xlib:+expose+
-          (xlib::x xlib::y xlib::count xlib::window xlib::width xlib::height)
-          (with-xlib-window
-              (win xlib::window manager)
-            (log-format manager ":exposure event to ~A" win)
-            (exposure-callback win xlib::x xlib::y
-                               xlib::width xlib::height
-                               xlib::count)))
-         (xlib:+resize-request+
-          (xlib::width xlib::height xlib::window)
-          (with-xlib-window
-              (win xlib::window manager)
-            (log-format manager ":resize event to ~A" win)
-            (resize-callback win xlib::width xlib::height)))
-         (xlib:+motion-notify+
-          (xlib::x xlib::y xlib::window
-           xlib::x_root xlib::y_root)
-          (with-xlib-window
-              (win xlib::window manager)
-            (log-format manager ":motion-notify event to ~A" win)
-            (motion-notify-callback win xlib::x xlib::y nil)))
-         (xlib:+button-press+
-          (xlib::x xlib::y xlib::window
-           xlib::x_root xlib::y_root)
-          (with-xlib-window
-              (win xlib::window manager)
-            (log-format manager ":button-press event to ~A" win)
-            (button-press-callback win xlib::x xlib::y)))
-         (xlib:+button-release+
-          (xlib::x xlib::y xlib::window
-           xlib::x_root xlib::y_root)
-          (with-xlib-window
-              (win xlib::window manager)
-            (log-format manager ":button-release event to ~A" win)
-            (button-release-callback win xlib::x xlib::y)))
-         (xlib:+configure-notify+
-          (xlib::x xlib::y xlib::window
-           xlib::width xlib::height)
-          (with-xlib-window
-              (win xlib::window manager)
-            (log-format manager ":configure-notify event to ~A" win)
-            (configure-notify-callback win
-                                       xlib::x xlib::y
-                                       xlib::width xlib::height)))
-         (xlib:+enter-notify+
-          ()
-          (log-format manager ":enter-notify event"))
-         )
-        )
+      (while (has-event-que-p manager)  ;for all events
+        (proc-event manager)
+        (dispatch-and-call-event manager event))
+      ;; if it has thread hooks
       (iterate:iter
         (iterate:for f in (thread-hooks-of manager))
-        (funcall f))
-      )
-    (iterate:iter (iterate:for win in
-                               (remove-if
-                                #'(lambda (w) (subtypep (class-of w) '<widget>))
-                                (windows-of manager)))
-                  (render-widgets win)
-                  (flush-window win :clear nil)
-                  )
-    ;;(flush manager)
+        (funcall f)))
     (sleep 0.01)                        ;sleep for not monopoly thread
     ))
 
-;; managerに<window>を追加する.
-;; 全ての<window>は<manager>によって管理される必要がある.
-;; これはevent-loopを適切に処理するためである.
-;; これは<window>のサブクラスである<widget>についても同様である.
 (defmethod add-window ((manager <manager>) (window <window>))
+  "add a window to manager"
   (push window (windows-of manager))
   (setf (manager-of window) manager)
   window)
+
+(defmethod add-widget ((manager <manager>) (widget <widget>))
+  "add a window to manager"
+  (push widget (widgets-of manager))
+  widget)
 
 (defun xflush ()
   (xlib:flush :display (display-of *manager*)))
@@ -183,19 +197,16 @@
 ;; nurikabeで共通に使われるeventのマスクを
 ;; 返す
 (defun default-event-mask ()
-  (logior
-   xlib:+exposure-mask+
-   xlib:+button-press-mask+
-   xlib:+button-release-mask+
-   xlib:+button1-motion-mask+
-   xlib:+substructure-notify-mask+
-   xlib:+structure-notify-mask+))
+  (logior xlib:+exposure-mask+
+          xlib:+button-press-mask+
+          xlib:+button-release-mask+
+          xlib:+button1-motion-mask+
+          xlib:+substructure-notify-mask+
+          xlib:+structure-notify-mask+
+          xlib:+leave-window-mask+ ))
 
 (defun default-attribute-mask ()
-  (logior
-   xlib:+cw-event-mask+
-   xlib:+cw-colormap+
-   xlib:+cw-back-pixmap+))
+  (logior xlib:+cw-event-mask+ xlib:+cw-colormap+ xlib:+cw-back-pixmap+))
 
 (defun new-texture-name (&optional (man *manager*))
   (incf (gl-textures-of man)))
@@ -205,11 +216,8 @@
   (with-foreign-object
       (event 'xlib::XEvent)             ;どうすべきか?
     (while t
-      (while (> (xlib:events-queued :display (display-of manager)
-                                    :mode 1)
-                0)
+      (while (has-event-que-p manager)
         (xlib:next-event :display (display-of manager) :event event)
         (let ((type (xlib:event-type event)))
-          (if (eq type ev)
-              (return-from wait-event t))))
+          (if (eq type ev) (return-from wait-event t))))
       (sleep 0.01))))

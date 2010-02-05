@@ -8,6 +8,7 @@
 
 (defpackage #:nurikabe
   (:use #:common-lisp #:chimi #:cffi)
+  (:nicknames #:nk)
   (:export
    ;; manager.lisp
    #:*manager*
@@ -16,91 +17,75 @@
    #:new-texture-name
    #:with-x-serialize
    #:add-thread-hook
-   ;; classes.lisp
-   #:<window>
-   #:<gl-window>
-   #:width-of
-   #:height-of
-   #:x-of
-   #:y-of
-   #:manager-of
-   #:mutex-of
    ;; color.lisp
-   #:symbol->rgb-vector
+   #:find-color
    ;; window.lisp
    #:<window>
    #:widgets-of
    #:make-window
-   #:put-image
    #:flush-window
    #:delete-widgets
-   #:image-of
-   #:xwindow-of
    #:render-widgets
-   ;; image.lisp
-   #:<image>
-   #:background-of
-   #:make-image
-   #:flat-content-of
-   #:draw-line
-   #:draw-string
-   #:drawn-string-size
-   #:draw-circle
-   #:draw-ring
-   #:draw-polygon
-   #:draw-rectangle
-   #:fill-c-array
-   #:fill-c-array-reverse
-   ;; callbacks.lisp
+   #:move #:set-background-color
    #:exposure-callback
    #:button-press-callback
    #:button-release-callback
    #:configure-notify-callback
    #:motion-notify-callback
-   ;; widget
-   #:<widget>
+   ;; image.lisp
+   #:<image>
+   #:make-image
+   #:draw-line
+   #:draw-circle
+   #:draw-string
+   #:draw-rectangle
+   #:clear-image
+   ;; widget.lisp
    #:make-widget
-   #:make-click-button
-   #:map-widgets
-   #:make-toggle-button
    #:render-widget
-   ;; packing
-   #:make-packing-box
-   #:line-up
-   ;; gl-wrapper
-;;;    #:gl-push-pop-matrix
-;;;    #:gl-push-pop-attribute
-;;;    #:gl-disable-block
-;;;    #:gl-enable-block
-;;;    #:gl-clear-color-fv
-;;;    #:gl-vertex-3fv
-;;;    #:gl-color-3fv
-;;;    #:gl-translate-fv
-;;;    #:gl-normal-3fv
-;;;    #:gl-command
-;;;    #:gl-light-fv
-;;;    #:gl-material-fv
-;;;    #:gl-mult-matrix-f
-;;;    #:gl-color-3fv
-;;;    #:gl-tex-coord-2fv
-;;;    #:gl-new-texture-name
-;;;    #:gl-display-list-block
-   ;; gl-window
-   #:make-gl-window
-   #:with-gl-make-current-window
-   #:opengl-setup
-   #:gl-context-of
-   ;; gl-light
-   #:make-gl-light
-   #:setup-gl-light
-   #:enable-gl-light
-   ;; gl-material
-   #:setup-material
-   #:find-gl-material
-   #:gl-material-p
-   #:transparent
-   #:alpha-blending
-   #:symbol->gl-rgb-vector
+   ;; image-widget.lisp
+   #:<image-widget>
+   #:image-of
+   #:put-image
+   #:get-image
+   ;; click-button-widget
+   #:<click-button-widget>
+;;    #:background-of
+;;    #:flat-content-of
+;;    #:drawn-string-size
+;;    #:draw-ring
+;;    #:draw-polygon
+;;    #:draw-rectangle
+;;    #:fill-c-array
+;;    #:fill-c-array-reverse
+
+
+;;    ;; widget
+;;    #:<widget>
+;;    #:make-widget
+;;    #:make-click-button
+;;    #:map-widgets
+;;    #:make-toggle-button
+;;    #:render-widget
+;;    ;; packing
+;;    #:make-packing-box
+;;    #:line-up
+;;    ;; gl-window
+;;    #:make-gl-window
+;;    #:with-gl-make-current-window
+;;    #:opengl-setup
+;;    #:gl-context-of
+;;    ;; gl-light
+;;    #:make-gl-light
+;;    #:setup-gl-light
+;;    #:enable-gl-light
+;;    ;; gl-material
+;;    #:setup-material
+;;    #:find-gl-material
+;;    #:gl-material-p
+;;    #:transparent
+;;    #:alpha-blending
+;;    #:symbol->gl-rgb-vector
    ))
 
 (in-package #:nurikabe)
