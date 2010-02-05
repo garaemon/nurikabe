@@ -7,15 +7,11 @@
 		 (:file "classes"
 			:depends-on ("nurikabe"))
  		 (:file "font" :depends-on ("nurikabe"))
-		 (:file "color"
-                        :depends-on ("nurikabe"))
-		 (:file "manager"
-                        :depends-on ("nurikabe" "classes"))
-		 (:file "window"
-                        :depends-on ("nurikabe" "classes" "manager" "color"))
+		 (:file "color" :depends-on ("nurikabe"))
+		 (:file "manager" :depends-on ("nurikabe" "classes"))
+		 (:file "window" :depends-on ("classes" "manager" "color"))
                  (:file "widget"
-                        :depends-on ("nurikabe" "classes" "manager" "color"
-                                      "window"))
+                        :depends-on ("classes" "manager" "color" "window"))
 		 (:file "image"
                         :depends-on ("manager" "color" "font"))
                  (:file "image-widget"
@@ -23,6 +19,7 @@
                                       "window" "image"))
                  (:file "button-widget" :depends-on ("image-widget"))
                  (:file "click-button-widget" :depends-on ("button-widget"))
+                 (:file "toggle-button-widget" :depends-on ("button-widget"))
 ;;                  (:file "gl-window"
 ;;                         :depends-on ("nurikabe" "classes" "manager" "color"
 ;;                                      "canvas"))

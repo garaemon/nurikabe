@@ -122,7 +122,6 @@ any contents in <window> is must be realized through <widget>."))
 (defclass* <button-widget>
     (<image-widget>)
   ((button-state nil)
-   (button-size 0.5d0)
    (button-region nil)) ;(left-up-x left-up-y right-down-x right-down-y)
   )
 
@@ -130,7 +129,8 @@ any contents in <window> is must be realized through <widget>."))
     (<button-widget>)
   ((display-string "")                  ;
    (display-string-offset nil)          ;
-   (font-size nil))                     ;
+   (button-size nil)                    ;
+   (button-font-size 10))              ;
   (:documentation
    "widget class for a toggle button.
     +-------------+
@@ -153,22 +153,22 @@ any contents in <window> is must be realized through <widget>."))
    When button pressed, call press-callback function.")
   )
 
-(defclass* <canvas>
-    (<widget>)
-  ()
-  (:documentation
-   "<canvas> class is a ..."))
+;; (defclass* <canvas>
+;;     (<widget>)
+;;   ()
+;;   (:documentation
+;;    "<canvas> class is a ..."))
 
-(defclass* <gl-canvas>
-    (<canvas>)
-  ((gl-context nil)                     ;
-   (default-gl-line-width 2.0))         ;
-  (:documentation
-   ""))
+;; (defclass* <gl-canvas>
+;;     (<canvas>)
+;;   ((gl-context nil)                     ;
+;;    (default-gl-line-width 2.0))         ;
+;;   (:documentation
+;;    ""))
 
-(defclass* <gl-window>
-    (<window>)
-  ((gl-context nil)                     ;
-   (default-gl-line-width 2.0))         ;
-  (:documentation
-   ""))
+;; (defclass* <gl-window>
+;;     (<window>)
+;;   ((gl-context nil)                     ;
+;;    (default-gl-line-width 2.0))         ;
+;;   (:documentation
+;;    ""))

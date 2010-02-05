@@ -1,17 +1,6 @@
 ;;================================================
 ;; click-button-widget.lisp
 ;;
-;;
-;; button size is defined with button-size.
-;; button-size is a double-float value between 0.0d0 and 1.0d0.
-;;   +----------------------------+    +
-;;   |                            |    | (1 - button-size) / 2.0d0
-;;   |     /----------------\     |    +
-;;   |     |     BUTTON     |     |    | button-size 
-;;   |     \----------------/     |    +
-;;   |                            |    | (1 - button-size) / 2.0d0
-;;   +----------------------------+    *
-;;
 ;; written by R.Ueda (garaemon)
 ;;================================================
 (in-package :nurikabe)
@@ -19,7 +8,7 @@
 (defmethod initialize-instance :after ((widget <click-button-widget>)
                                        &rest initargs)
   (declare (ignore initargs))
-  ;; decide button region from button-size
+  ;; decide button region from width and height
   (unless (button-region-of widget)
     (setf (button-region-of widget)
           (list 0 0 (width-of widget) (height-of widget))))
