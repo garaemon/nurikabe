@@ -153,22 +153,14 @@ any contents in <window> is must be realized through <widget>."))
    When button pressed, call press-callback function.")
   )
 
-;; (defclass* <canvas>
-;;     (<widget>)
-;;   ()
-;;   (:documentation
-;;    "<canvas> class is a ..."))
+(defclass* <container-widget>
+    (<widget>)
+  ((widgets nil)))
 
-;; (defclass* <gl-canvas>
-;;     (<canvas>)
-;;   ((gl-context nil)                     ;
-;;    (default-gl-line-width 2.0))         ;
-;;   (:documentation
-;;    ""))
+(defclass* <image-viewer-widget>
+    (<image-widget>)
+  ((view-image nil)
+   (focus-x 0)
+   (focus-y 0)
+   ))
 
-;; (defclass* <gl-window>
-;;     (<window>)
-;;   ((gl-context nil)                     ;
-;;    (default-gl-line-width 2.0))         ;
-;;   (:documentation
-;;    ""))

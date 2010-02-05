@@ -16,10 +16,14 @@
                         :depends-on ("manager" "color" "font"))
                  (:file "image-widget"
                         :depends-on ("nurikabe" "classes" "manager" "color"
-                                      "window" "image"))
+                                      "window" "image" "widget"))
+                 (:file "container-widget"
+                        :depends-on ("nurikabe" "classes" "manager" "widget"
+                                      "window"))
                  (:file "button-widget" :depends-on ("image-widget"))
                  (:file "click-button-widget" :depends-on ("button-widget"))
                  (:file "toggle-button-widget" :depends-on ("button-widget"))
+                 (:file "image-viewer-widget" :depends-on ("image-widget"))
 ;;                  (:file "gl-window"
 ;;                         :depends-on ("nurikabe" "classes" "manager" "color"
 ;;                                      "canvas"))

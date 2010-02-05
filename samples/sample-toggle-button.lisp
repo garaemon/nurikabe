@@ -11,12 +11,12 @@
                               :background :white
                               :name "test window"))
 
-
 (defvar *widget1* (nk:make-widget 'nk:<toggle-button-widget>
                                   :display-string "check here"
                                   :parent *win*
                                   :width 200 :height 30
                                   :x 10 :y 10))
+
 (defvar *widget2* (nk:make-widget 'nk:<toggle-button-widget>
                                   :display-string "check here?"
                                   :parent *win*
