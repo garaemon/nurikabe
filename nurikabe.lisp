@@ -52,7 +52,8 @@
    #:<click-button-widget>
    ;; toggle-button-widget
    #:<toggle-button-widget>
-
+   ;; slide widget
+   #:<slide-widget>
 ;;    #:background-of
 ;;    #:flat-content-of
 ;;    #:drawn-string-size
