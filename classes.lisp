@@ -111,13 +111,16 @@ any contents in <window> is must be realized through <widget>."))
    (debugp nil))                        ;debugging flag
   )
 
+(defclass* <container-widget>
+    (<widget>)
+  ((widgets nil)))
+
 (defclass* <image-widget>
     (<widget>)
   ((image nil)                          ;an instance of <image>
    (ximage nil)                         ;a c object
    (image-array nil)                    ;c content of ximage
-   )
-  )
+   ))
 
 (defclass* <button-widget>
     (<image-widget>)
@@ -187,15 +190,10 @@ any contents in <window> is must be realized through <widget>."))
     (<bar-widget>)
   ())
 
-(defclass* <container-widget>
-    (<widget>)
-  ((widgets nil)))
-
 (defclass* <image-viewer-widget>
     (<container-widget>)
   ((viewer-widget nil)
-   (horizontal-bar-widget nil)
-   (vertical-bar-widget nil)
-   (focus-x nil) (focus-y nil)
+   (horizontal-slide-widget nil)
+   (vertical-slide-widget nil)
+   (left-up-position '(0.0 0.0))
    ))
-
