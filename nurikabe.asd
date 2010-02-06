@@ -24,6 +24,7 @@
                  (:file "click-button-widget" :depends-on ("button-widget"))
                  (:file "toggle-button-widget" :depends-on ("button-widget"))
                  (:file "image-viewer-widget" :depends-on ("image-widget"))
+                 (:file "slide-widget" :depends-on ("button-widget" "classes"))
 ;;                  (:file "gl-window"
 ;;                         :depends-on ("nurikabe" "classes" "manager" "color"
 ;;                                      "canvas"))

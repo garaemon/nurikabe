@@ -61,8 +61,8 @@
   (log-format widget "button-press-calback is called at ~A ~A of ~A"
               x y widget)
   (with-slots (button-state button-region) widget
-    (if (and (print (< (car button-region) x (caddr button-region)))
-             (print (< (cadr button-region) y (cadddr button-region))))
+    (if (and (< (car button-region) x (caddr button-region))
+             (< (cadr button-region) y (cadddr button-region)))
         (setf button-state (not button-state))))
   (render-widget widget)
   widget)

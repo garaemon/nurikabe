@@ -153,7 +153,8 @@
                            (,(cadr api) xlib::window ,manager)
                          ;; format to log
                          (log-format ,manager "~s event is occured"
-                                     ',(car api))
+                                     (xlib:event-constant->event-key
+                                      ',(car api)))
                          ,@(cadddr api))))
                 *event-callback-apis*)))
   )
@@ -170,13 +171,20 @@ flow of event-loop is:
 3. call flush window for all of the windows"
   (let ((event (xevent-of manager)))
     (with-x-serialize (manager)
-      (while (has-event-que-p manager)  ;for all events
-        (proc-event manager)
-        (dispatch-and-call-event manager event))
-      ;; if it has thread hooks
-      (iterate:iter
-        (iterate:for f in (thread-hooks-of manager))
-        (funcall f)))
+      (let ((call-event-p (has-event-que-p manager)))
+        (while (has-event-que-p manager)  ;for all events
+          (proc-event manager)
+          (dispatch-and-call-event manager event))
+        ;; call nop callback
+        (iterate:iter
+          (iterate:for w in (append (windows-of manager)
+                                    (widgets-of manager)))
+          (nop-callback w))
+        ;; if it has thread hooks
+        (iterate:iter
+          (iterate:for f in (thread-hooks-of manager))
+          (funcall f))
+        (if call-event-p (flush manager))))
     (sleep 0.01)                        ;sleep for not monopoly thread
     ))
 

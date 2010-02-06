@@ -31,3 +31,8 @@
   (setf (widgets-of win) (remove target (widgets-of win)))
   win)
 
+
+(defmethod render-widgets ((wid <container-widget>) &key (flush t))
+  (dolist (w (widgets-of wid))
+    (log-format wid ":render-widget of ~A is called" w)
+    (render-widget w)))

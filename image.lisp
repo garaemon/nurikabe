@@ -101,17 +101,53 @@
                       from-x from-y
                       to-x to-y
                       &key
-                      (color :black))
+                      (color :black)
+                      (width 2))
   "Draw a line from (from-x from-y) to (to-x to-y) in a image.
 
    You can set the color of line by :color keyword."
-  (let ((state (aa:make-state)))
-    (aa:line-f state from-x from-y to-x to-y)
-    (let* ((put-pixel (aa-misc:image-put-pixel (content-of image)
-                                               (symbol->rgb-vector color))))
-      (aa:cells-sweep state put-pixel))
+  ;; using draw-rectangle and :angle here
+  (let ((cx (/ (+ from-x to-x) 2))
+        (cy (/ (+ from-y to-y) 2)))
+    (let ((distance (nh:distance (nh:double-vector from-x from-y 0)
+                                 (nh:double-vector to-x to-y 0)))
+          (theta (atan (- to-y cy) (- to-x cx))))
+      (let ((fx (round (- cx (/ distance 2))))
+            (fy (round (- cy (/ width 2)))))
+        (draw-rectangle image fx fy
+                        distance width
+                        :color color :angle theta)))
     image))
 
+(defmethod draw-triangle ((image <image>) a b c
+                          &key
+                          (color :black)
+                          (angle nil)
+                          (rotate-center nil)
+                          (fill t))
+  ;; only supports :fill t
+  (let ((path (paths:create-path :closed-polyline))
+        (state (aa:make-state)))
+    (paths:path-extend path (paths:make-straight-line)
+                       (paths:make-point (car a) (cadr a)))
+    (paths:path-extend path (paths:make-straight-line)
+                       (paths:make-point (car b) (cadr b)))
+    (paths:path-extend path (paths:make-straight-line)
+                       (paths:make-point (car c) (cadr c)))
+    (if angle (paths:path-rotate
+                   path angle
+                   (if rotate-center
+                       (paths:make-point (car rotate-center)
+                                         (cadr rotate-center))
+                       (paths:make-point
+                        (/ (apply #'+ (mapcar #'car (list a b c))) 3)
+                        (/ (apply #'+ (mapcar #'cadr (list a b c))) 3)))))
+    (let ((put-pixel (aa-misc:image-put-pixel (content-of image)
+                                              (symbol->rgb-vector color))))
+      (aa:cells-sweep (vectors::update-state state path) put-pixel)))
+  image)
+
+   
 (defmethod draw-polygon ((image <image>) points &key (color :black))
   "draw a polygon.
    The points must be a CCW.
@@ -145,7 +181,10 @@
                                               :round-x round-x
                                               :round-y round-y))
             (state (aa:make-state)))
-        (if angle (paths:path-rotate paths angle (paths:make-point x y)))
+        (if angle (paths:path-rotate
+                   paths angle
+                   (paths:make-point (+ x (/ width 2))
+                                     (+ y (/ height 2)))))
         (let ((put-pixel (aa-misc:image-put-pixel (content-of image)
                                                   (symbol->rgb-vector color))))
           (aa:cells-sweep (vectors::update-state state paths) put-pixel)))

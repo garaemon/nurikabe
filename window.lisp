@@ -183,3 +183,7 @@ For, there are some messy settings in making a window.
   ;; need to re-render ...
   (render-widgets win)
   t)
+
+(defmethod nop-callback ((win <window-core>))
+  ;; always called
+  t)

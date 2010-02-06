@@ -12,6 +12,9 @@
    You have to over-write this method in subclasses of <widget>."
   (log-format widget "render-widget is called at ~A" widget))
 
+(defmethod init-widget ((widget <widget>))
+  t)
+
 (defmethod add-widget ((widget <widget>) (w <widget>))
   (add-widget (parent-of widget) w))
 
@@ -24,6 +27,8 @@
                     (width nil) (height nil)
                     (depth 24)
                     (map t)
+                    (lock t)
+                    (wait-expose t)
                     (background :white)
                     &allow-other-keys)
   (if (not (and parent x y width height))
@@ -37,7 +42,7 @@
                          :background background
                          :allow-other-keys t
                          args)))
-      (with-x-serialize (manager)
+      (with-x-serialize (manager :lock lock)
         ;; make an x object
         (setf (xwindow-of widget)
               (xlib:create-window
@@ -60,9 +65,11 @@
         ;; add widget to parent
         (add-widget parent widget)
         (add-widget manager widget)
+        (init-widget widget)
         (if map (map-window widget))
+        (render-widget widget)
         (flush manager)
-        (wait-event manager xlib:+expose+)
+        (if wait-expose (wait-event manager xlib:+expose+))
         (log-format widget "widget ~A is created" widget)
         ;; TODO: finalizer
         widget))))

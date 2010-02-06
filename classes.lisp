@@ -153,14 +153,49 @@ any contents in <window> is must be realized through <widget>."))
    When button pressed, call press-callback function.")
   )
 
+(defclass* <slide-button-widget>
+    (<button-widget>)
+  ((direction (nh:double-vector 1 0))
+   (button-callback nil)
+   ))
+
+(defclass* <slide-slider-widget>
+    (<image-widget>)
+  ((verticalp nil)
+   (slider-width nil)
+   (slider-position 0.0d0)              ;between 0.0 and 1.0
+   (clicked-position nil)               ;to memorize clicked position
+   (clicked-region nil)                 ;to memorize clicked region
+   (update-callback nil)
+   ))
+
+(defclass* <slide-widget>
+    (<container-widget>)
+  ((position 0.0)
+   (forward-button-widget nil)
+   (backward-button-widget nil)
+   (slider-widget nil)
+   (verticalp nil)
+   )
+  )
+
+(defclass* <horizontal-bar-widget>
+    (<bar-widget>)
+  ())
+
+(defclass* <vertical-bar-widget>
+    (<bar-widget>)
+  ())
+
 (defclass* <container-widget>
     (<widget>)
   ((widgets nil)))
 
 (defclass* <image-viewer-widget>
-    (<image-widget>)
-  ((view-image nil)
-   (focus-x 0)
-   (focus-y 0)
+    (<container-widget>)
+  ((viewer-widget nil)
+   (horizontal-bar-widget nil)
+   (vertical-bar-widget nil)
+   (focus-x nil) (focus-y nil)
    ))
 
