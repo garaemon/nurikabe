@@ -40,6 +40,7 @@
    #:draw-string
    #:draw-rectangle
    #:clear-image
+   #:make-image-from-file
    ;; widget.lisp
    #:make-widget
    #:render-widget

@@ -5,6 +5,21 @@
 ;;================================================
 (in-package :nurikabe)
 
+(defclass* <click-button-widget>
+    (<button-widget>)
+  ((display-string "")                  ;string of button
+   (button-callback nil)                ;callback function
+   (button-color :skyblue)              ;button color
+   (pressed-color :blue)
+   (string-draw-point nil)              ;(x y)
+   (button-font-size 10))               ;font size of display-text
+  (:documentation
+   "just a simple button.
+
+   When button pressed, call press-callback function.")
+  )
+
+
 (defmethod initialize-instance :after ((widget <click-button-widget>)
                                        &rest initargs)
   (declare (ignore initargs))

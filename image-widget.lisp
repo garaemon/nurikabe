@@ -5,6 +5,13 @@
 ;;================================================
 (in-package :nurikabe)
 
+(defclass* <image-widget>
+    (<widget>)
+  ((image nil)                          ;an instance of <image>
+   (ximage nil)                         ;a c object
+   (image-array nil)                    ;c content of ximage
+   ))
+
 (defmethod initialize-instance :after ((widget <image-widget>) &rest initargs)
   (declare (ignore initargs))
   (unless (image-array-of widget)

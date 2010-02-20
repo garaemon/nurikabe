@@ -19,6 +19,23 @@
 
 (in-package #:nurikabe)
 
+(defclass* <manager>
+    ()
+  ((windows nil)                  ;the list of <window>
+   (widgets nil)                  ;the list of <widget>
+   (display nil)                  ;xwindow's display
+   (root-screen nil)              ;xwindow's root screen
+   (root-window nil)              ;xwindow's root window
+   (logger nil)                   ;an instance of chimi:<logger>
+   (loggingp nil)                 ;logging or not
+   (current-gl-context nil)       ;for gl:makecrrent
+   (gl-textures 0)                ;for substituing for glGenTexture
+   (event-thread nil)             ;subthread which runs event-loop
+   (thread-hooks nil)             ;event-thread hook
+   (xevent nil)                   ;c object of xevent for reducing allocation
+   (pressed-widget nil)           ;for motion notify callback
+   (mutex (make-mutex))))         ;mutex for event-loop in subthread
+
 (defvar *manager* nil
   "an instance of <manager> is always bind to this symbol.")
 
@@ -119,7 +136,7 @@
   (defmanager-event xlib:+motion-notify+
       win (xlib::x xlib::y xlib::window xlib::x_root xlib::y_root)
       (motion-notify-callback win xlib::x xlib::y nil))
-
+  
   (defmanager-event xlib:+button-press+
       win (xlib::x xlib::y xlib::window xlib::x_root xlib::y_root)
       (button-press-callback win xlib::x xlib::y))
@@ -152,9 +169,9 @@
                        (with-xlib-window
                            (,(cadr api) xlib::window ,manager)
                          ;; format to log
-                         (log-format ,manager "~s event is occured"
+                         (log-format ,manager "~s event is occured at ~A"
                                      (xlib:event-constant->event-key
-                                      ',(car api)))
+                                      ',(car api)) ,(cadr api))
                          ,@(cadddr api))))
                 *event-callback-apis*)))
   )
@@ -187,17 +204,6 @@ flow of event-loop is:
         (if call-event-p (flush manager))))
     (sleep 0.01)                        ;sleep for not monopoly thread
     ))
-
-(defmethod add-window ((manager <manager>) (window <window>))
-  "add a window to manager"
-  (push window (windows-of manager))
-  (setf (manager-of window) manager)
-  window)
-
-(defmethod add-widget ((manager <manager>) (widget <widget>))
-  "add a window to manager"
-  (push widget (widgets-of manager))
-  widget)
 
 (defun xflush ()
   (xlib:flush :display (display-of *manager*)))

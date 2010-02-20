@@ -10,6 +10,16 @@
 
 (in-package #:nurikabe)
 
+(defclass* <image>
+    ()
+  ((width nil)                          ;width of image
+   (height nil)                         ;height of image
+   (depth nil)                          ;depth of image. default is ...
+   (content nil)                        ;3A array
+   (foreground nil)                     ;default foreground color
+   (background nil)                     ;default background color
+   (font-loader nil)))                  ;font manager
+
 (defvar *font-paths*
   #+:darwin
   '(#p"/Library/Fonts/"
@@ -53,8 +63,8 @@
     ;; set content and width, height
     (cond (content
            (setf (content-of ret) content)
-           (setf (height-of ret) (array-dimension ret 0))
-           (setf (width-of ret) (array-dimension ret 1)))
+           (setf (height-of ret) (array-dimension content 0))
+           (setf (width-of ret) (array-dimension content 1)))
           ((and width height)
            (setf (content-of ret)
                  (aa-misc:make-image
@@ -408,3 +418,32 @@
                                  (+ (* (+ (* i width) j) step) k))
                   (aref from i j k)))))))
   to)
+
+(defmethod copy-to-image ((from <image>) (to <image>)
+                          &key
+                          (offset-x 0)
+                          (offset-y 0))
+  "to is sometimes smaller than from."
+  (let ((to-width (width-of to)) (to-height (height-of to))
+        (from-width (width-of from)) (from-height (height-of from))
+        (to-content (content-of to)) (from-content (content-of from)))
+    (do ((i (round offset-x) (1+ i))
+         (ii 0 (1+ ii)))
+        ((or (>= ii to-width)
+             (>= i from-width)))
+      (declare (type fixnum i ii))
+      (do ((j (round offset-y) (1+ j))
+           (jj 0 (1+ jj)))
+          ((or (>= jj to-height)
+               (>= j from-height)))
+        (declare (type fixnum j jj))
+        (dotimes (k 3)
+          (setf (aref to-content jj ii k) (aref from-content j i k)))
+        ))
+    to))
+
+;; file IO
+(defun make-image-from-file (fname)
+  (let ((array (cl-wand:read-image fname)))
+    (make-image :content array)))
+

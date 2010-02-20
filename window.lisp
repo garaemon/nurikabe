@@ -10,6 +10,25 @@
 
 (in-package #:nurikabe)
 
+(defclass* <window-core>
+    ()
+  ((width nil) (height nil)             ;size of window
+   (name "")                            ;title of window
+   (gcontext nil)                       ;graphics context
+   (x nil) (y nil)                      ;position of window
+   (manager nil)                        ;reference to manager
+   (background nil)                     ;background color
+   (xwindow nil))                       ;for x window
+  (:documentation
+   "superclass of <window> and <widget>"))
+
+(defclass* <window>
+    (<window-core>)
+  ((widgets nil))                       ;the list of <widgets>
+  (:documentation
+   "<window> class is a container of <widget>.
+any contents in <window> is must be realized through <widget>."))
+
 ;; for printing
 (defmethod print-object ((window <window>) stream)
   (print-unreadable-object (window stream :type t :identity t)
@@ -114,35 +133,7 @@ For, there are some messy settings in making a window.
    :drawable (xwindow-of win)
    :color (find-color color)))
 
-;; for widget
-(defmethod add-widget ((win <window>) (widget <widget>))
-  (push widget (widgets-of win)))
-  
-(defmethod delete-widgets ((win <window>) &key (flush nil))
-  (let ((widgets (widgets-of win)))
-    (iterate:iter
-     (iterate:for w in widgets)
-     (unmap-window w))
-    (setf (widgets-of win) nil)
-    (setf (windows-of (manager-of win))
-          (remove-if #'(lambda (x) (member x widgets))
-                     (windows-of (manager-of win))))
-    (log-format win "delete widgets of ~A" win)
-    (when flush
-      (flush (manager-of win)))
-    t))
-
-(defmethod delete-widget ((win <window>) (target <widget>))
-  "delete target widgets"
-  (setf (widgets-of win) (remove target (widgets-of win)))
-  win)
-
-(defmethod delete-widget ((win <window>) (name string))
-  (setf (widgets-of win) (remove-if #'(lambda (x) (string= name (name-of x)))
-                                    (widgets-of win)))
-  win)
-
-(defmethod render-widgets ((win <window>) &key (flush t))
+(defmethod render-widgets ((win <window>))
   "rendering widgets of window.
   
   The order of widgets, slot of <window>,
@@ -150,12 +141,6 @@ For, there are some messy settings in making a window.
   (dolist (w (widgets-of win))
     (log-format win ":render-widget of ~A is called" w)
     (render-widget w)))
-
-(defmethod find-widget-region ((win <window>) pos)
-  "pos --> (x y)"
-  (dolist (w (widgets-of win))
-    (if (widget-region-p w pos)
-        (return-from find-widget-region w))))
 
 ;; callbacks
 (defmethod exposure-callback ((win <window-core>) x y width height count)
@@ -187,3 +172,9 @@ For, there are some messy settings in making a window.
 (defmethod nop-callback ((win <window-core>))
   ;; always called
   t)
+
+(defmethod add-window ((manager <manager>) (window <window>))
+  "add a window to manager"
+  (push window (windows-of manager))
+  (setf (manager-of window) manager)
+  window)

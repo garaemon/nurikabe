@@ -10,6 +10,21 @@
 ;;================================================
 (in-package :nurikabe)
 
+(defclass* <toggle-button-widget>
+    (<button-widget>)
+  ((display-string "")                  ;
+   (display-string-offset nil)          ;
+   (button-size nil)                    ;
+   (button-font-size 10))              ;
+  (:documentation
+   "widget class for a toggle button.
+    +-------------+
+    |<--> offset  |
+    | x    hoge   |
+    +-------------+
+   "))
+
+
 (defmethod initialize-instance :after ((widget <toggle-button-widget>)
                                        &rest initargs)
   (declare (ignore initargs))

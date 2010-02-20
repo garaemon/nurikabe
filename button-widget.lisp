@@ -7,6 +7,12 @@
 (in-package :nurikabe)
 
 ;; button widget
+(defclass* <button-widget>
+    (<image-widget>)
+  ((button-state nil)
+   (button-region nil)) ;(left-up-x left-up-y right-down-x right-down-y)
+  )
+
 (defmethod button-left-up-x ((widget <button-widget>))
   (car (button-region-of widget)))
 (defmethod button-left-up-y ((widget <button-widget>))

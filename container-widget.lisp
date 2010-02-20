@@ -5,6 +5,9 @@
 ;;================================================
 
 (in-package :nurikabe)
+(defclass* <container-widget>
+    (<widget>)
+  ((widgets nil)))
 
 ;; the same methods to <window>
 ;; i think we should make widget-container class for superclass of
@@ -32,7 +35,7 @@
   win)
 
 
-(defmethod render-widgets ((wid <container-widget>) &key (flush t))
+(defmethod render-widgets ((wid <container-widget>))
   (dolist (w (widgets-of wid))
     (log-format wid ":render-widget of ~A is called" w)
     (render-widget w)))
