@@ -238,12 +238,14 @@ in MAKE-GL-WIDGET"))
   (with-foreign-object
       (attrib :int 11)
     (fill-default-glx-attrib attrib)
+    ;; using old api
     (glx:choose-visual :display (display-of manager)
                        :screen (root-screen-of manager)
                        :attribute attrib)))
 
 (defmethod make-gl-context ((manager <manager>)
                             &key (visual (make-glx-visual manager)))
+  ;; using old api
   (glx:create-context :display (display-of manager)
                       :visual-info visual :directp t))
 

@@ -60,5 +60,9 @@
    #:<slide-widget>
    ;; image-viewer
    #:<image-viewer-widget>
+   ;; gl-widget
+   #:make-gl-widget
+   #:<gl-widget>
+   #:glrender
    ))
 
