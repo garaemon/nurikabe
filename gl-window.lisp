@@ -104,9 +104,7 @@
             (wait-event manager xlib:+expose+) ;????
             ;; free C Objects?
             (xlib:free visual)
-            (glx:make-current :display display
-                              :drawable xwin
-                              :glx-context ctx)
+            (glx:make-current :display display :drawable xwin :glx-context ctx)
             (log-format canvas "window ~A is created" canvas))
           canvas)))))
 

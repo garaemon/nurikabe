@@ -29,11 +29,9 @@
    (logger nil)                   ;an instance of chimi:<logger>
    (loggingp nil)                 ;logging or not
    (current-gl-context nil)       ;for gl:makecrrent
-   (gl-textures 0)                ;for substituing for glGenTexture
    (event-thread nil)             ;subthread which runs event-loop
    (thread-hooks nil)             ;event-thread hook
    (xevent nil)                   ;c object of xevent for reducing allocation
-   (pressed-widget nil)           ;for motion notify callback
    (mutex (make-mutex))))         ;mutex for event-loop in subthread
 
 (defvar *manager* nil
@@ -41,10 +39,10 @@
 
 (defun init-gui (&key (loggingp nil) (threadingp t))
   "Initialize function for NURIKABE package.
-   This function must be called before any nurikabe process.
+This function must be called before any nurikabe process.
 
-   When it called, <manager>'s instance, *manager* is created
-   and open X11 display."
+When it called, <manager>'s instance, *manager* is created
+and open X11 display."
   (unless *manager*
     (setf *manager* (make-instance '<manager> :loggingp loggingp))
     (setf (display-of *manager*) (xlib:open-display :host ""))
@@ -54,8 +52,7 @@
           (xlib:default-screen :display (display-of *manager*)))
     (setf (logger-of *manager*)
 	  (chimi:make-logger :location "/tmp/nurikabe.log"))
-    (setf (xevent-of *manager*)
-          (xlib:new-event))
+    (setf (xevent-of *manager*) (xlib:new-event))
     (when threadingp
       (setf (event-thread-of *manager*)
             (chimi:make-thread
@@ -76,7 +73,7 @@
 
   params a list like (symbol xwindow manager)"
   (let ((xwin (gensym)))
-    `(let* ((,xwin (xlib-window->window ,manager ,xwindow)))
+    `(let ((,xwin (xlib-window->window ,manager ,xwindow)))
        (let ((,symbol ,xwin))
          (if ,xwin
              (progn ,@bodies))))))
@@ -108,8 +105,7 @@
     (setf (thread-hooks-of manager) nil)))
 
 (defmethod has-event-que-p ((manager <manager>))
-  (> (xlib:events-queued :display (display-of manager)
-                         :mode 1) ;1??
+  (> (xlib:events-queued :display (display-of manager) :mode 1) ;1??
      0))
 
 (defmethod proc-event ((manager <manager>))
@@ -151,14 +147,14 @@
                                  xlib::width xlib::height))
   
   (defmanager-event xlib:+enter-notify+
-      win ()
+      win (xlib::window)
+      (enter-notify-callback win)
       t)
-
+  
   (defmanager-event xlib:+leave-notify+
       win (xlib::window)
       (leave-notify-callback win)
       t)
-  
   
   (defmacro dispatch-and-call-event (manager event)
     `(xlib:event-case
@@ -222,11 +218,8 @@ flow of event-loop is:
 (defun default-attribute-mask ()
   (logior xlib:+cw-event-mask+ xlib:+cw-colormap+ xlib:+cw-back-pixmap+))
 
-(defun new-texture-name (&optional (man *manager*))
-  (incf (gl-textures-of man)))
-
 (defmethod wait-event ((manager <manager>) ev)
-  "wait until event will ..."
+  "wait until the specified event will be occurred"
   (with-foreign-object
       (event 'xlib::XEvent)             ;どうすべきか?
     (while t

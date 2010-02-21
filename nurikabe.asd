@@ -23,6 +23,11 @@
                  (:file "toggle-button-widget" :depends-on ("button-widget"))
                  (:file "image-viewer-widget" :depends-on ("image-widget" ))
                  (:file "slide-widget" :depends-on ("button-widget" ))
+                 ;; for gl
+                 (:file "gl-light")
+                 (:file "gl-material")
+                 (:file "gl-widget"
+                        :depends-on ("gl-light" "gl-material" "widget"))
 ;;                  (:file "gl-window"
 ;;                         :depends-on ("nurikabe" "classes" "manager" "color"
 ;;                                      "canvas"))

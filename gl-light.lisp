@@ -21,16 +21,13 @@
                       (specular '(0.7 0.7 0.7 1.0))
                       (position '(1000.0 2000.0 100000.0 0.0)))
   (make-instance '<gl-light>
-                 :id id
-                 :ambient ambient
-                 :diffuse diffuse
-                 :specular specular
-                 :position position))
+                 :id id :ambient ambient :diffuse diffuse
+                 :specular specular :position position))
 
 (defmethod gl-light-id ((light <gl-light>))
   (+ gl:+light0+ (id-of light)))
 
-(defmethod setup-gl-light ((light <gl-light>))
+(defmethod enable ((light <gl-light>))
   (let ((light-id (gl-light-id light)))
     (gl:light-fv light-id gl:+ambient+ (ambient-of light))
     (gl:light-fv light-id gl:+specular+ (specular-of light))
@@ -39,6 +36,5 @@
     (gl:enable light-id)
     light-id))
 
-(defmethod enable-gl-light ((light <gl-light>))
-  (gl:enable (gl-light-id light)))
-
+(defmethod disable ((light <gl-light>))
+  (gl:disable (gl-light-id light)))

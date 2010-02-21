@@ -55,47 +55,5 @@
    #:<toggle-button-widget>
    ;; slide widget
    #:<slide-widget>
-;;    #:background-of
-;;    #:flat-content-of
-;;    #:drawn-string-size
-;;    #:draw-ring
-;;    #:draw-polygon
-;;    #:draw-rectangle
-;;    #:fill-c-array
-;;    #:fill-c-array-reverse
-
-
-;;    ;; widget
-;;    #:<widget>
-;;    #:make-widget
-;;    #:make-click-button
-;;    #:map-widgets
-;;    #:make-toggle-button
-;;    #:render-widget
-;;    ;; packing
-;;    #:make-packing-box
-;;    #:line-up
-;;    ;; gl-window
-;;    #:make-gl-window
-;;    #:with-gl-make-current-window
-;;    #:opengl-setup
-;;    #:gl-context-of
-;;    ;; gl-light
-;;    #:make-gl-light
-;;    #:setup-gl-light
-;;    #:enable-gl-light
-;;    ;; gl-material
-;;    #:setup-material
-;;    #:find-gl-material
-;;    #:gl-material-p
-;;    #:transparent
-;;    #:alpha-blending
-;;    #:symbol->gl-rgb-vector
    ))
 
-(in-package #:nurikabe)
-
-;; generics
-(defgeneric flush (manager))
-(defgeneric event-loop (manager))
-(defgeneric xlib-window->window (manager win))

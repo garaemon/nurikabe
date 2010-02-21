@@ -164,6 +164,9 @@ For, there are some messy settings in making a window.
 (defmethod leave-notify-callback ((win <window-core>))
   t)
 
+(defmethod enter-notify-callback ((win <window-core>))
+  t)
+
 (defmethod exposure-callback ((win <window>) x y width height count)
   ;; need to re-render ...
   (render-widgets win)
@@ -171,7 +174,19 @@ For, there are some messy settings in making a window.
 
 (defmethod nop-callback ((win <window-core>))
   ;; always called
+  (declare (ignore win))
   t)
+
+(defmethod resize-callback ((win <window>) w h)
+  (with-slots (width height widgets) win
+    (let ((rw (/ w (float width)))
+          (rh (/ h (float height))))
+      ;; update width and height
+      (setf width w)
+      (setf height h)
+      ;; call resize callback of widgets
+      (dolist (wid widgets)
+        (resize-callback wid rw rh)))))
 
 (defmethod add-window ((manager <manager>) (window <window>))
   "add a window to manager"
