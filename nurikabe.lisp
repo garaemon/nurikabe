@@ -42,6 +42,7 @@
    #:clear-image
    #:make-image-from-file
    ;; widget.lisp
+   #:<widget>
    #:make-widget
    #:render-widget
    ;; image-widget.lisp
@@ -49,11 +50,15 @@
    #:image-of
    #:put-image
    #:get-image
+   ;; container
+   #:<container-widget>
    ;; click-button-widget
    #:<click-button-widget>
    ;; toggle-button-widget
    #:<toggle-button-widget>
    ;; slide widget
    #:<slide-widget>
+   ;; image-viewer
+   #:<image-viewer-widget>
    ))
 
