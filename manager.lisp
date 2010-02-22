@@ -46,21 +46,20 @@ When it called, <manager>'s instance, *manager* is created
 and open X11 display."
   (unless *manager*
     (setf *manager* (make-instance '<manager> :loggingp loggingp :host host))
-    (setf (display-of *manager*) (xlib:open-display :host host))
-    (setf (root-window-of *manager*)
-          (xlib:default-root-window :display (display-of *manager*)))
-    (setf (root-screen-of *manager*)
-          (xlib:default-screen :display (display-of *manager*)))
-    (setf (logger-of *manager*)
-	  (chimi:make-logger :location "/tmp/nurikabe.log"))
-    (setf (xevent-of *manager*) (xlib:new-event))
+    (with-slots (display root-window root-screen logger xevent event-thread)
+        manager
+    (setf display (xlib:open-display :host host))
+    (setf root-window (xlib:default-root-window :display display))
+    (setf root-screen (xlib:default-screen :display display))
+    (setf logger (chimi:make-logger :location "/tmp/nurikabe.log"))
+    (setf xevent (xlib:new-event))
     (when threadingp
-      (setf (event-thread-of *manager*)
+      (setf event-thread
             (chimi:make-thread
              (lambda ()
                (xlib:sync :display (display-of *manager*) :discardp t)
                (while t (event-loop *manager*)))))) ;LOOP
-    )
+    ))
   *manager*)
 
 (defmethod xlib-window->window ((manager <manager>) win)
