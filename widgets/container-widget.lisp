@@ -7,7 +7,12 @@
 (in-package :nurikabe)
 (defclass* <container-widget>
     (<widget>)
-  ((widgets nil)))
+  ((widgets nil)
+   (geometries nil)))
+
+(defmethod add-geometry ((widget <container-widget>) geo)
+  (with-slots (geometries) widget
+    (setf geometries (append geometries (list geo)))))
 
 ;; the same methods to <window>
 ;; i think we should make widget-container class for superclass of
@@ -39,3 +44,20 @@
   (dolist (w (widgets-of wid))
     (log-format wid ":render-widget of ~A is called" w)
     (render-widget w)))
+
+(defmethod configure-notify-callback ((win <container-widget>) x y w h)
+;;   (with-slots (width height geometries) win
+;;     (let ((rw (/ w width))
+;;           (rh (/ h height)))
+;;       (setf width w)
+;;       (setf height h)
+;;       (dolist (g geometries)
+;;         ;; call resize-callback for all widgets in g
+;;         (with-slots (widgets) g
+;;           (dolist (w widgets)
+;;             (resize-callback w rw rh)))
+;;         ;; call arrange-widgets
+;;         (arrange-widgets g))
+;;       t))
+  )
+

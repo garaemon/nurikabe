@@ -97,7 +97,7 @@
 
 (defmethod nop-callback ((widget <slide-button-widget>))
   (when (eq (button-state-of widget) :pressed)
-    (format t "hogehoge~%")))
+    ))
 
 ;; slider
 ;;         slider-width
@@ -170,8 +170,20 @@
 (defmethod button-release-callback ((widget <slide-slider-widget>) x y)
   (setf (clicked-region-of widget) nil))
 
-;; (defmethod leave-notify-callback ((widget <slide-slider-widget>))
-;;   (setf (clicked-region-of widget) nil))
+(defmethod resize-callback ((widget <slide-slider-widget>) rw rh)
+  (log-format widget "resize-callback is called at ~A with ~A ~A" widget
+              rw rh)
+  (with-slots (verticalp width height) widget
+    ;; update width and height
+    (let ((new-width (if verticalp width (round (* rw width))))
+          (new-height (if verticalp (round (* rh height)) height)))
+      (setf width new-width height new-height)
+      ;; update slide-width
+      (let ((r (/ (slider-direction-width widget)
+                  (float (whole-width-of widget)))))
+        (setf (slider-width-of widget) (* r (slider-direction-width widget))))
+      (resize widget width height)
+      widget)))
 
 (defmethod motion-notify-callback ((widget <slide-slider-widget>) x y code)
   (when (eq (clicked-region-of widget) :inside)
@@ -234,28 +246,21 @@
 ;; bar widget
 (defmethod init-widget ((widget <slide-widget>))
   (with-slots (verticalp width height forward-button-widget
-               backward-button-widget slider-widget whole-width)
+               backward-button-widget slider-widget whole-width
+               parent)
       widget
-    (let ((button-size (if verticalp width height)))
-      (unless forward-button-widget
-        (setf forward-button-widget
-              (make-widget '<slide-button-widget>
-                           :lock nil
-                           :wait-expose nil
-                           :parent widget
-                           :x (if verticalp 0 (- width button-size))
-                           :y (if verticalp (- height button-size) 0)
-                           :width button-size :height button-size
-                           :direction (if verticalp
-                                          (nh:double-vector 0 1)
-                                          (nh:double-vector 1 0)))))
+    (let ((button-size (if verticalp width height))
+          (geo (make-geometry :parent widget
+                              :vertical (if verticalp :upper :fix-center)
+                              :horizontal (if verticalp :fix-center :upper))))
       (unless backward-button-widget
         (setf backward-button-widget
               (make-widget '<slide-button-widget>
                            :lock nil
                            :wait-expose nil
                            :parent widget
-                           :x 0 :y 0 :width button-size :height button-size
+                           :geometry geo
+                           :width button-size :height button-size
                            :direction (if verticalp
                                           (nh:double-vector 0 -1)
                                           (nh:double-vector -1 0)))))
@@ -266,8 +271,7 @@
                            :wait-expose nil
                            :parent widget
                            :whole-width whole-width
-                           :x (if verticalp 0 button-size)
-                           :y (if verticalp button-size 0)
+                           :geometry geo
                            :verticalp verticalp
                            :width (if verticalp
                                       button-size
@@ -275,6 +279,17 @@
                            :height (if verticalp
                                        (- height (* 2 button-size))
                                        button-size))))
+      (unless forward-button-widget
+        (setf forward-button-widget
+              (make-widget '<slide-button-widget>
+                           :lock nil
+                           :wait-expose nil
+                           :parent widget
+                           :geometry geo
+                           :width button-size :height button-size
+                           :direction (if verticalp
+                                          (nh:double-vector 0 1)
+                                          (nh:double-vector 1 0)))))
       ;; callback
       (setf (button-callback-of (forward-button-widget-of widget))
             #'(lambda ()
@@ -289,7 +304,7 @@
       (setf (update-callback-of (slider-widget-of widget))
             #'(lambda ()
                 (sync-from-slider-widget widget)))
-      )))
+      widget)))
 
 (defmethod move-slider ((widget <slide-widget>) v &key (relativep nil))
   (if relativep
@@ -317,3 +332,7 @@
 
 (defmethod render-widget ((widget <slide-widget>))
   (render-widgets widget))
+
+(defmethod resize-callback ((widget <slide-widget>) rw rh)
+  (resize-callback (slider-widget-of widget) rw rh)
+  (arrange-widgets (car (geometries-of widget))))

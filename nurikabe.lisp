@@ -72,6 +72,7 @@
    #:<lower-policy>
    #:<fix-policy> #:<fix-center-policy>
    #:make-geometry
+   #:make-geometry-policy
    #:add-widget #:add-widgets
    #:arrange-widgets
    ))

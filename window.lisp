@@ -201,31 +201,29 @@ You can use this method."
   t)
 
 (defmethod configure-notify-callback ((win <window>) x y w h)
-  ;; width and height changed to w and h
-  ;; geometry-ed widgets are rearranged by geometry.
-  ;; update width and height
-  (with-slots (width height geometries gcontext manager background) win
-    (with-slots (display) manager
-      (setf width w)
-      (setf height h)
-      ;; call arrange-widgets
-      (dolist (g geometries)
-        (arrange-widgets g)))
-    t))
+  "configure-notify-callback is called when resize event is occurred.
+In this method, a window manages geometry relation of widgets.
 
-(defmethod resize-callback ((win <window>) w h)
+First of all, window calls resize-callback of widgets in its geometry, 
+and the arguments of resize-callback is RATIO of change of width and height.
+Second, window calls arrange-widgets for all geometries."
   ;; width and height changed to w and h
   ;; geometry-ed widgets are rearranged by geometry.
   ;; update width and height
-  (with-slots (width height geometries gcontext manager background) win
-    (with-slots (display) manager
+  (with-slots (width height geometries) win
+    (let ((rw (/ w width))
+          (rh (/ h height)))
       (setf width w)
       (setf height h)
-      (resize win w h)
-      ;; call arrange-widgets
       (dolist (g geometries)
-        (arrange-widgets g)))
-    t))
+        ;; call resize-callback for all widgets in g
+        (with-slots (widgets) g
+          (dolist (w widgets)
+            (log-format win "now calling resize-callback of ~A" w)
+            (resize-callback w rw rh)))
+        ;; call arrange-widgets
+        (arrange-widgets g))
+      t)))
 
 (defmethod add-window ((manager <manager>) (window <window>))
   "add a window to manager"

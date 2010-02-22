@@ -32,7 +32,7 @@
                    (:file "click-button-widget" :depends-on ("widget"))
                    (:file "toggle-button-widget" :depends-on ("widget"))
                    (:file "image-viewer-widget" :depends-on ("widget"))
-                   (:file "slide-widget" :depends-on ("widget"))
+                   (:file "slide-widget" :depends-on ("widget" "geometry"))
                    (:file "gl-widget" :depends-on ("widget"))
                    (:file "geometry" :depends-on ("widget")))
                   ))

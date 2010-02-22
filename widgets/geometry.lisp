@@ -34,25 +34,47 @@
     ()
   ())
 
-(defclass* <center-policy>
+(eval-when (:compile-toplevel :load-toplevel)
+  (defvar *geometry-policies* nil))
+
+(defmacro defgeometry-policy (policy-name keyword-alias &rest clos-args)
+  `(progn
+     ;; define class
+     (defclass* ,policy-name ,@clos-args)
+     (eval-when (:compile-toplevel :load-toplevel)
+       (unless (assoc ,keyword-alias *geometry-policies*)
+         (push (cons ,keyword-alias ',policy-name) *geometry-policies*)))
+     )
+  )
+
+(defgeometry-policy <center-policy> :center
+  (<geometry-policy>)
+  ())
+
+(defgeometry-policy <upper-policy> :upper
     (<geometry-policy>)
   ())
 
-(defclass* <upper-policy>
+(defgeometry-policy <lower-policy> :lower
     (<geometry-policy>)
   ())
 
-(defclass* <lower-policy>
-    (<geometry-policy>)
-  ())
-
-(defclass* <fix-policy>
+(defgeometry-policy <fix-policy> :fix
     (<geometry-policy>)
   ((position 0)))
 
-(defclass* <fix-center-policy>
-    (<fix-policy>)
+(defgeometry-policy <fix-center-policy> :fix-center
+  (<fix-policy>)
   ())
+
+(defun make-geometry-policy (key/class &rest args)
+  (cond ((keywordp key/class)
+         (apply #'make-instance (chimi:assoc-ref key/class *geometry-policies*)
+                :allow-other-keys t
+                args))
+        ((symbolp key/class)
+         (apply #'make-instance key/class :allow-other-keys t args))
+        (t key/class)))
 
 (defun make-geometry (&rest args
                       &key
@@ -65,7 +87,8 @@
   (if (null (and vertical horizontal))
       (error "You have to specify :vertical and :horizontal keyword"))
   (let ((geo (apply #'make-instance '<geometry>
-                    :vertical-policy vertical :horizontal-policy horizontal
+                    :vertical-policy (make-geometry-policy vertical)
+                    :horizontal-policy (make-geometry-policy horizontal)
                     :widgets widgets
                     :allow-other-keys t args)))
     ;; add geo to parent
@@ -88,14 +111,17 @@
 In this method, <geometry> calls arrange-widgets-policy method
  of vertical and horizontal policy."
   (with-slots (widgets vertical-policy horizontal-policy parent) geo
-    (with-slots (width height) parent
-      (let ((xs (arrange-widgets-policy horizontal-policy
-                                        (mapcar #'width-of widgets) width))
-            (ys (arrange-widgets-policy vertical-policy
-                                        (mapcar #'height-of widgets) height)))
-        (mapcar #'(lambda (w x y) (move w x y)) widgets xs ys)
-        ;; need flush?
-        t))))
+    (when widgets
+      (with-slots (width height) parent
+        (let ((xs (arrange-widgets-policy horizontal-policy
+                                          (mapcar #'width-of widgets)
+                                          width))
+              (ys (arrange-widgets-policy vertical-policy
+                                          (mapcar #'height-of widgets)
+                                          height)))
+          (mapcar #'(lambda (w x y) (move w x y)) widgets xs ys)
+          ;; need flush?
+          t)))))
 
 (defmethod arrange-widgets-policy ((policy <geometry-policy>) widgets width)
   "this is a virtual method.

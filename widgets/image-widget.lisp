@@ -44,6 +44,13 @@
                       :background (background-of widget))))
   widget)
 
+(defmethod initialize-image ((widget <image-widget>))
+  (when (image-array-of widget)
+    )
+  (when (ximage-of widget)
+    )
+  )
+
 (defmethod put-image ((widget <image-widget>) (image <image>)
                       &key (flush nil) (lock t))
   (setf (image-of widget) image)

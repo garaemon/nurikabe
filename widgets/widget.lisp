@@ -32,6 +32,7 @@
                     &key
                     (parent nil)        ;window
                     (x nil) (y nil)     ;position in window
+                    (geometry nil)
                     (width nil) (height nil)
                     (depth 24)
                     (map t)
@@ -39,9 +40,11 @@
                     (wait-expose t)
                     (background :white)
                     &allow-other-keys)
-  (if (not (and parent x y width height))
+  (if (not (and parent width height))
       (error
-       "You have to set :parent, :x, :y, :width and :height in MAKE-WIDGET"))
+       "You have to set :parent, :width and :height in MAKE-WIDGET"))
+  (if (null (or (and x y) geometry))
+      (error "You have to specify :x and :y or :geometry in MAKE-WIDGET"))
   (let ((manager (manager-of parent)))
     (let ((widget (apply #'make-instance class
                          :x x :y y
@@ -57,7 +60,7 @@
                :display (display-of manager)
                :screen (root-screen-of manager)
                :parent (xwindow-of parent)
-               :x x :y y
+               :x (or x 0) :y (or y 0)
                :depth depth
                :border-width 0
                :background-pixel (symbol->pixel-value background)
@@ -74,6 +77,10 @@
         (add-widget parent widget)
         (add-widget manager widget)
         (init-widget widget)
+        ;; if geometry is specified, we need to call add-widget here
+        (when geometry
+          (add-widget geometry widget)
+          (arrange-widgets geometry))
         (if map (map-window widget))
         (render-widget widget)
         (flush manager)
@@ -122,3 +129,4 @@
   (setf (widgets-of win) (remove-if #'(lambda (x) (string= name (name-of x)))
                                     (widgets-of win)))
   win)
+

@@ -35,7 +35,6 @@
                          font-size (font-loader-of image)))
          (font-height (ttf-font-size->pixel-font-height
                        ttf-font-size (font-loader-of image))))
-    (print font-height)
     ;; setup button size
     (unless (button-size-of widget)
       (setf (button-size-of widget) font-height))
