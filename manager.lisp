@@ -232,7 +232,8 @@ flow of event-loop is:
   (logior xlib:+cw-event-mask+ xlib:+cw-colormap+ xlib:+cw-back-pixel+))
 
 (defmethod wait-event ((manager <manager>) ev)
-  "wait until the specified event will be occurred."
+  "Wait until the specified event will be occurred.
+This waiting is archived by BUSY LOOP."
   (with-foreign-object
       (event 'xlib::XEvent)
     (while t

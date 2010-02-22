@@ -20,7 +20,8 @@
    (background nil)                     ;background color
    (xwindow nil))                       ;for x window
   (:documentation
-   "superclass of <window> and <widget>"))
+   "superclass of <window> and <widget>.
+<window-core> class is an interface to xwindow."))
 
 (defclass* <window>
     (<window-core>)
@@ -49,7 +50,7 @@ any contents in <window> is must be realized through <widget>."))
    :height (height-of window)
    :exposurep t))
 
-(defmethod add-geometry ((window <window>) geo)
+(defmethod add-geometry ((window <window>) (geo <geometry>))
   (with-slots (geometries) window
     (setf geometries (append geometries (list geo)))))
 
@@ -70,7 +71,7 @@ any contents in <window> is must be realized through <widget>."))
   
 (defmethod unmap-window ((window <window-core>))
   "Unmapping window.
-   This method is a wrapper of unmap-window for <window> class."
+This method is a wrapper of unmap-window for <window> class."
   (xlib:unmap-window :display (display-of (manager-of window))
                      :drawable (xwindow-of window)))
 
@@ -109,7 +110,6 @@ For, there are some messy settings in making a window.
       (setf (gcontext-of ret)
             (xlib:create-gc :display (display-of manager)
                             :drawable (xwindow-of ret)))
-                            ;;:drawable (root-window-of manager)))
       (xlib:set-background :display (display-of manager)
                            :gc (gcontext-of ret)
                            :color (symbol->pixel-value background))
@@ -134,7 +134,7 @@ You can use this method."
   (xlib:move-window :display (display-of (manager-of win))
                     :drawable (xwindow-of win)
                     :x x :y y)
-  (update-geometry win)
+  (update-geometry win)                 ;call here?
   win)
 
 (defmethod resize ((win <window-core>) w h)
@@ -142,10 +142,12 @@ You can use this method."
   (xlib:resize-window :display (display-of (manager-of win))
                       :drawable (xwindow-of win)
                       :width w :height h)
-  (update-geometry win)
+  (update-geometry win)                 ;call here?
   win)
 
 (defmethod update-geometry ((win <window-core>))
+  "update x, y, width and height of <window-core> by asking
+X server."
   (with-slots (x y width height manager xwindow) win
     (multiple-value-bind (_x _y _width _height)
         (xlib:get-geometry :display (display-of manager)
@@ -171,6 +173,7 @@ You can use this method."
 
 ;; callbacks
 ;; callbacks is defined as methods of <window-core>.
+;; callback methods of <window-core> is the pure vertual methods
 (defmethod exposure-callback ((win <window-core>) x y width height count)
   (declare (ignore win x y width height count))
   t)
@@ -203,15 +206,13 @@ You can use this method."
   (declare (ignore win))
   t)
 
-(defmethod exposure-callback ((win <window>) x y width height count)
-  ;; render background...
-  ;; need to re-render ...
-  (render-widgets win)
-  t)
-
 (defmethod nop-callback ((win <window-core>))
   ;; always called
   (declare (ignore win))
+  t)
+
+(defmethod exposure-callback ((win <window>) x y width height count)
+  (render-widgets win)
   t)
 
 (defmethod configure-notify-callback ((win <window>) x y w h)
