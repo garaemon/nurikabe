@@ -75,4 +75,3 @@
    #:add-widget #:add-widgets
    #:arrange-widgets
    ))
-
