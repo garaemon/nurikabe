@@ -32,5 +32,6 @@
                  (:file "gl-widget"
                         :depends-on ("gl-light" "gl-material"
                                      "widget" "nurikabe" "manager"))
+                 (:file "geometry" :depends-on ("nurikabe" "widget" "window"))
 		 )
     )

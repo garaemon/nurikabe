@@ -15,7 +15,7 @@
 ;;                                :background :blue))
 
 ;; (nk:draw-line *image* 0 0 1000 1000 :width 8)
-(defvar *image* (nk:make-image-from-file "/usr/share/wv/patterns/wmf.jpg"))
+(defvar *image* (nk:make-image-from-file "/home/garaemon/69621.jpg"))
 
 (defvar *widget* (nk:make-widget 'nk::<image-viewer-widget>
                                  :parent *win*

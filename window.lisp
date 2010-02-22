@@ -24,7 +24,8 @@
 
 (defclass* <window>
     (<window-core>)
-  ((widgets nil))                       ;the list of <widgets>
+  ((widgets nil)                        ;the list of <widgets>
+   (geometries nil))                    ;the list of <geometry>
   (:documentation
    "<window> class is a container of <widget>.
 any contents in <window> is must be realized through <widget>."))
@@ -47,6 +48,10 @@ any contents in <window> is must be realized through <widget>."))
    :width (width-of window)
    :height (height-of window)
    :exposurep t))
+
+(defmethod add-geometry ((window <window>) geo)
+  (with-slots (geometries) window
+    (setf geometries (append geometries (list geo)))))
 
 (defmethod map-window ((window <window-core>))
   "Mapping a window.
@@ -88,15 +93,12 @@ For, there are some messy settings in making a window.
     (setf (x-of ret) x (y-of ret) y (background-of ret) background)
     (with-x-serialize (manager)
       (setf (xwindow-of ret)
-            (xlib:create-window
+            (xlib:create-simple-window
              :display (display-of manager)   ;display
              :parent (root-window-of manager) ;parent
-             :screen (root-screen-of manager)
-             :x x :y y                  ;position
-             :depth depth :width width :height height
+             :x x :y y :width width :height height
              :background-pixel (symbol->pixel-value background)
-             :event-mask (default-event-mask)
-             :attribute-mask (default-attribute-mask)))
+             :foreground-pixel (symbol->pixel-value foreground)))
       (xlib:select-input :display (display-of manager) ;display
                          :drawable (xwindow-of ret)
                          :mask (default-event-mask))
@@ -106,7 +108,14 @@ For, there are some messy settings in making a window.
       ;; create gc
       (setf (gcontext-of ret)
             (xlib:create-gc :display (display-of manager)
-                            :drawable (root-window-of manager)))
+                            :drawable (xwindow-of ret)))
+                            ;;:drawable (root-window-of manager)))
+      (xlib:set-background :display (display-of manager)
+                           :gc (gcontext-of ret)
+                           :color (symbol->pixel-value background))
+      (xlib:set-foreground :display (display-of manager)
+                           :gc (gcontext-of ret)
+                           :color (symbol->pixel-value foreground))
       (add-window manager ret)      ;add to manager
       (map-window ret)              ;mapping
       (flush manager)               ;tell mapping of winow to x server
@@ -115,59 +124,73 @@ For, there are some messy settings in making a window.
       ret)))
 
 (defmethod flush ((window <window>))
-  "Flush window."
+  "Flush window.
+this method is an aliase to flush method of manager."
   (flush (manager-of window)))
 
-(defmethod move ((win <window>) x y)
+(defmethod move ((win <window-core>) x y)
   "If you want to move window manually,
-   you can use this method move."
+You can use this method."
   (xlib:move-window :display (display-of (manager-of win))
                     :drawable (xwindow-of win)
                     :x x :y y)
   win)
 
+(defmethod resize ((win <window-core>) w h)
+  (xlib:resize-window :display (display-of (manager-of win))
+                      :drawable (xwindow-of win)
+                      :width w :height h)
+  win)
+
 (defmethod set-background-color ((win <window>) color)
-  "Currently does not work..."
+  "Currently does not work?"
   (xlib:set-window-background
    :display (display-of (manager-of win))
    :drawable (xwindow-of win)
    :color (find-color color)))
 
 (defmethod render-widgets ((win <window>))
-  "rendering widgets of window.
-  
-  The order of widgets, slot of <window>,
-  is reversed, so we have to render the widgets in reversed order."
+  "rendering widgets of window."
   (dolist (w (widgets-of win))
     (log-format win ":render-widget of ~A is called" w)
     (render-widget w)))
 
 ;; callbacks
+;; callbacks is defined as methods of <window-core>.
 (defmethod exposure-callback ((win <window-core>) x y width height count)
+  (declare (ignore win x y width height count))
   t)
 
 (defmethod resize-callback ((win <window-core>) width height)
+  (declare (ignore win width height))
   t)
 
 (defmethod button-press-callback ((win <window-core>) x y)
+  (declare (ignore win x y))
   t)
 
 (defmethod button-release-callback ((win <window-core>) x y)
+  (declare (ignore win x y))
   t)
 
 (defmethod motion-notify-callback ((win <window-core>) x y code)
+  (declare (ignore win x y code))
   t)
 
 (defmethod configure-notify-callback ((win <window-core>) x y width height)
+  (declare (ignore win x y width height))
   t)
 
 (defmethod leave-notify-callback ((win <window-core>))
+  (declare (ignore win))
   t)
 
 (defmethod enter-notify-callback ((win <window-core>))
+  (declare (ignore win))
   t)
 
 (defmethod exposure-callback ((win <window>) x y width height count)
+  ;; render background...
   ;; need to re-render ...
   (render-widgets win)
   t)
@@ -177,16 +200,32 @@ For, there are some messy settings in making a window.
   (declare (ignore win))
   t)
 
-(defmethod resize-callback ((win <window>) w h)
-  (with-slots (width height widgets) win
-    (let ((rw (/ w (float width)))
-          (rh (/ h (float height))))
-      ;; update width and height
+(defmethod configure-notify-callback ((win <window>) x y w h)
+  ;; width and height changed to w and h
+  ;; geometry-ed widgets are rearranged by geometry.
+  ;; update width and height
+  (with-slots (width height geometries gcontext manager background) win
+    (with-slots (display) manager
       (setf width w)
       (setf height h)
-      ;; call resize callback of widgets
-      (dolist (wid widgets)
-        (resize-callback wid rw rh)))))
+      ;; call arrange-widgets
+      (dolist (g geometries)
+        (arrange-widgets g)))
+    t))
+
+(defmethod resize-callback ((win <window>) w h)
+  ;; width and height changed to w and h
+  ;; geometry-ed widgets are rearranged by geometry.
+  ;; update width and height
+  (with-slots (width height geometries gcontext manager background) win
+    (with-slots (display) manager
+      (setf width w)
+      (setf height h)
+      (resize win w h)
+      ;; call arrange-widgets
+      (dolist (g geometries)
+        (arrange-widgets g)))
+    t))
 
 (defmethod add-window ((manager <manager>) (window <window>))
   "add a window to manager"

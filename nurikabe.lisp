@@ -64,5 +64,15 @@
    #:make-gl-widget
    #:<gl-widget>
    #:glrender
+   ;; geometry
+   #:<geometry>
+   #:<geometry-policy>
+   #:<center-policy>
+   #:<upper-policy>
+   #:<lower-policy>
+   #:<fix-policy> #:<fix-center-policy>
+   #:make-geometry
+   #:add-widget #:add-widgets
+   #:arrange-widgets
    ))
 

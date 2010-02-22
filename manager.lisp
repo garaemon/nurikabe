@@ -9,7 +9,7 @@
 ;; event loop background in subthread.
 ;; 
 ;; The creation of the instance of <manager> must be
-;; achieved by calling nurikabe::init-gui.
+;; achieved by calling nurikabe:init-gui.
 ;; 
 ;; written by R.Ueda (garaemon)
 ;;================================================
@@ -63,7 +63,7 @@ and open X11 display."
   *manager*)
 
 (defmethod xlib-window->window ((manager <manager>) win)
-  "convert window of xwindow to <window> instance."
+  "convert window of xwindow to <window-core>instance."
   (find (cffi:pointer-address win)
         (append (windows-of manager) (widgets-of manager))
         :key #'(lambda (x) (cffi:pointer-address (xwindow-of x)))))
@@ -84,12 +84,14 @@ and open X11 display."
   (xlib:flush :display (display-of man)))
 
 (defmethod log-format ((manager <manager>) str &rest args)
-  "write log to manager"
+  "Writing a log to manager.
+If loggingp slot of manager is nil, manager do nothing when log-format callled."
   (if (loggingp-of manager)
       (apply #'log-format (logger-of manager) str args)
       t))
 
 (defmacro with-x-serialize ((manager &key (lock t)) &rest args)
+  ;;
   `(chimi:with-mutex ((mutex-of ,manager) :lock ,lock)
      ,@args))
 
@@ -180,8 +182,9 @@ all of the callback is called in mutex lock.
 
 flow of event-loop is:
 1. call callback methods according to the events.
-2. call thrad hook functions.
-3. call flush window for all of the windows"
+2. call nop-callback for all widgets and windows.
+3. call thrad hook functions.
+4. call flush window for all of the windows"
   (let ((event (xevent-of manager)))
     (with-x-serialize (manager)
       (let ((call-event-p (has-event-que-p manager)))
@@ -202,12 +205,15 @@ flow of event-loop is:
     ))
 
 (defun xflush ()
+  "sending flush message to X Server."
   (xlib:flush :display (display-of *manager*)))
 
 ;; nurikabeで共通に使われるeventのマスクを
 ;; 返す
 (defun default-event-mask ()
+  "returns default event mask value used in nurikabe."
   (logior xlib:+exposure-mask+
+          ;;xlib:+resize-redirect-mask+
           xlib:+button-press-mask+
           xlib:+button-release-mask+
           xlib:+button1-motion-mask+
@@ -216,12 +222,13 @@ flow of event-loop is:
           xlib:+leave-window-mask+ ))
 
 (defun default-attribute-mask ()
-  (logior xlib:+cw-event-mask+ xlib:+cw-colormap+ xlib:+cw-back-pixmap+))
+  "returns default attribute mask value used in nurikabe"
+  (logior xlib:+cw-event-mask+ xlib:+cw-colormap+ xlib:+cw-back-pixel+))
 
 (defmethod wait-event ((manager <manager>) ev)
-  "wait until the specified event will be occurred"
+  "wait until the specified event will be occurred."
   (with-foreign-object
-      (event 'xlib::XEvent)             ;どうすべきか?
+      (event 'xlib::XEvent)
     (while t
       (while (has-event-que-p manager)
         (xlib:next-event :display (display-of manager) :event event)

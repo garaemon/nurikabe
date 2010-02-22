@@ -120,7 +120,7 @@
 (defmethod lighting-setup ((widget <gl-widget>))
   (with-slots (lights) widget
     (dolist (l lights)
-      (setup-gl-light l))
+      (enable l))
     lights))
 
 (defmethod glclear ((widget <gl-widget>))

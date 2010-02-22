@@ -110,8 +110,7 @@
           (remove-if #'(lambda (x) (member x widgets))
                      (windows-of (manager-of win))))
     (log-format win "delete widgets of ~A" win)
-    (when flush
-      (flush (manager-of win)))
+    (when flush (flush (manager-of win)))
     t))
 
 (defmethod delete-widget ((win <window>) (target <widget>))
