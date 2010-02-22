@@ -174,6 +174,19 @@ If loggingp slot of manager is nil, manager do nothing when log-format callled."
                 *event-callback-apis*)))
   )
 
+(defmethod run-thread-hooks ((manager <manager>))
+  "funcall all of the thread-hooks of manager"
+  (iterate:iter
+    (iterate:for f in (thread-hooks-of manager))
+    (funcall f)))
+
+(defmethod run-nop-callbacks ((manager <manager>))
+  "call nop-callback method for all the windows and widgets of manager"
+  (iterate:iter
+    (iterate:for w in (append (windows-of manager)
+                              (widgets-of manager)))
+    (nop-callback w)))
+
 (defmethod event-loop ((manager <manager>))
   "this method event-loop is called cyclicly in event-thread.
 It calls the proper callback methods according to the event.
@@ -191,15 +204,8 @@ flow of event-loop is:
         (while (has-event-que-p manager)  ;for all events
           (proc-event manager)
           (dispatch-and-call-event manager event))
-        ;; call nop callback
-        (iterate:iter
-          (iterate:for w in (append (windows-of manager)
-                                    (widgets-of manager)))
-          (nop-callback w))
-        ;; if it has thread hooks
-        (iterate:iter
-          (iterate:for f in (thread-hooks-of manager))
-          (funcall f))
+        (run-nop-callbacks manager)
+        (run-thread-hook manager)
         (if call-event-p (flush manager))))
     (sleep 0.01)                        ;sleep for not monopoly thread
     ))
