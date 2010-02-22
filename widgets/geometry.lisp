@@ -74,6 +74,8 @@
                 args))
         ((symbolp key/class)
          (apply #'make-instance key/class :allow-other-keys t args))
+        ((listp key/class)
+         (apply #'make-geometry-policy (append key/class args)))
         (t key/class)))
 
 (defun make-geometry (&rest args
