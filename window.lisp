@@ -134,13 +134,27 @@ You can use this method."
   (xlib:move-window :display (display-of (manager-of win))
                     :drawable (xwindow-of win)
                     :x x :y y)
+  (update-geometry win)
   win)
 
 (defmethod resize ((win <window-core>) w h)
+  (format t "width -> ~A, height -> ~A ~%" w h)
   (xlib:resize-window :display (display-of (manager-of win))
                       :drawable (xwindow-of win)
                       :width w :height h)
+  (update-geometry win)
   win)
+
+(defmethod update-geometry ((win <window-core>))
+  (with-slots (x y width height manager xwindow) win
+    (multiple-value-bind (_x _y _width _height)
+        (xlib:get-geometry :display (display-of manager)
+                           :drawable xwindow)
+      (setf x _x)
+      (setf y _y)
+      (setf width _width)
+      (setf height _height))
+    win))
 
 (defmethod set-background-color ((win <window>) color)
   "Currently does not work?"

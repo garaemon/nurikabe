@@ -33,10 +33,8 @@
    (backward-button-widget nil)
    (slider-widget nil)
    (verticalp nil)
-   (update-callback nil)
-   )
+   (update-callback nil))
   )
-
 
 ;; slide button widget
 ;;
@@ -183,6 +181,8 @@
                   (float (whole-width-of widget)))))
         (setf (slider-width-of widget) (* r (slider-direction-width widget))))
       (resize widget width height)
+      ;; update ximage and so on
+      (rebuild-image widget)
       widget)))
 
 (defmethod motion-notify-callback ((widget <slide-slider-widget>) x y code)
@@ -313,7 +313,6 @@
                                    ((< v 0.0) 0.0)
                                    (t v))))
 
-
 (defmethod one-slider-move ((widget <slide-widget>) &key (direction :positive))
   (move-slider widget (if (eq direction :positive)
                           +slider-one-move+
@@ -335,4 +334,6 @@
 
 (defmethod resize-callback ((widget <slide-widget>) rw rh)
   (resize-callback (slider-widget-of widget) rw rh)
+  (with-slots (width height) widget
+    (resize widget (round (* rw width)) (round (* rh height))))
   (arrange-widgets (car (geometries-of widget))))

@@ -21,7 +21,8 @@
 
 (defclass* <manager>
     ()
-  ((windows nil)                  ;the list of <window>
+  ((host "")
+   (windows nil)                  ;the list of <window>
    (widgets nil)                  ;the list of <widget>
    (display nil)                  ;xwindow's display
    (root-screen nil)              ;xwindow's root screen
@@ -37,15 +38,15 @@
 (defvar *manager* nil
   "an instance of <manager> is always bind to this symbol.")
 
-(defun init-gui (&key (loggingp nil) (threadingp t))
+(defun init-gui (&key (loggingp nil) (threadingp t) (host ""))
   "Initialize function for NURIKABE package.
 This function must be called before any nurikabe process.
 
 When it called, <manager>'s instance, *manager* is created
 and open X11 display."
   (unless *manager*
-    (setf *manager* (make-instance '<manager> :loggingp loggingp))
-    (setf (display-of *manager*) (xlib:open-display :host ""))
+    (setf *manager* (make-instance '<manager> :loggingp loggingp :host host))
+    (setf (display-of *manager*) (xlib:open-display :host host))
     (setf (root-window-of *manager*)
           (xlib:default-root-window :display (display-of *manager*)))
     (setf (root-screen-of *manager*)

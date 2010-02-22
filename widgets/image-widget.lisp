@@ -44,12 +44,39 @@
                       :background (background-of widget))))
   widget)
 
-(defmethod initialize-image ((widget <image-widget>))
-  (when (image-array-of widget)
-    )
-  (when (ximage-of widget)
-    )
-  )
+
+(defmethod rebuild-image ((widget <image-widget>))
+  "re-allocate ximage, image-array and image according to width and height
+of widget.
+If widget already has ximage or image-array, automatically free
+these c object."
+  (with-slots (ximage image image-array width height manager background)
+      widget
+    ;; free object
+    (when ximage
+      (xlib:destroy-image :image ximage))
+;;     (when image-array
+;;       (cffi:foreign-free image-array))
+    ;; re-allocate
+    (setf image-array (cffi:foreign-alloc :unsigned-char
+                                          :count (* width height 4)))
+    (with-slots (display root-screen) manager
+      (setf ximage
+            (xlib:create-image :display display
+                               :visual (xlib:default-visual
+                                           :display display
+                                         :screen root-screen)
+                               :depth 24
+                               :format xlib:+z-pixmap+
+                               :offset 0
+                               :data image-array
+                               :width width
+                               :height height
+                               :bitmap-pad 32
+                               :bytes-per-line 0)))
+    (setf image (make-image :width width :height height
+                            :background background))
+    widget))
 
 (defmethod put-image ((widget <image-widget>) (image <image>)
                       &key (flush nil) (lock t))
