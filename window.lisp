@@ -138,7 +138,6 @@ You can use this method."
   win)
 
 (defmethod resize ((win <window-core>) w h)
-  (format t "width -> ~A, height -> ~A ~%" w h)
   (xlib:resize-window :display (display-of (manager-of win))
                       :drawable (xwindow-of win)
                       :width w :height h)
@@ -170,6 +169,9 @@ X server."
   (dolist (w (widgets-of win))
     (log-format win ":render-widget of ~A is called" w)
     (render-widget w)))
+
+(defmethod get-image ((win <window-core>))
+  )
 
 ;; callbacks
 ;; callbacks is defined as methods of <window-core>.

@@ -39,25 +39,15 @@
   (setf (widgets-of win) (remove target (widgets-of win)))
   win)
 
-
 (defmethod render-widgets ((wid <container-widget>))
   (dolist (w (widgets-of wid))
     (log-format wid ":render-widget of ~A is called" w)
     (render-widget w)))
 
 (defmethod configure-notify-callback ((win <container-widget>) x y w h)
-;;   (with-slots (width height geometries) win
-;;     (let ((rw (/ w width))
-;;           (rh (/ h height)))
-;;       (setf width w)
-;;       (setf height h)
-;;       (dolist (g geometries)
-;;         ;; call resize-callback for all widgets in g
-;;         (with-slots (widgets) g
-;;           (dolist (w widgets)
-;;             (resize-callback w rw rh)))
-;;         ;; call arrange-widgets
-;;         (arrange-widgets g))
-;;       t))
-  )
+  (declare (ignore win x y w h))
+  t)
 
+(defmethod exposure-callback ((win <container-widget>) x y width height count)
+  (render-widgets win)
+  t)

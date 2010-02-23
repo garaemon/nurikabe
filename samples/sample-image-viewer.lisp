@@ -18,7 +18,7 @@
                                  :geometry '(:vertical :upper
                                              :horizontal :upper)
                                  :image *image*
-                                   :width 300 :height 200))
+                                 :width 300 :height 200))
 
 (nk:with-x-serialize (*manager*)
   (nk:render-widgets *win*))

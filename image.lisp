@@ -5,9 +5,6 @@
 ;; written by R.Ueda (garaemon)
 ;;================================================
 
-(declaim (optimize (debug 3)
-		   (safety 3)))
-
 (in-package #:nurikabe)
 
 (defclass* <image>
@@ -424,9 +421,11 @@
                           (offset-x 0)
                           (offset-y 0))
   "to is sometimes smaller than from."
+  (declare (optimize (debug 0) (speed 3) (safety 0)))
   (let ((to-width (width-of to)) (to-height (height-of to))
         (from-width (width-of from)) (from-height (height-of from))
         (to-content (content-of to)) (from-content (content-of from)))
+    (declare (type fixnum to-width to-height from-width from-height))
     (do ((i (round offset-x) (1+ i))
          (ii 0 (1+ ii)))
         ((or (>= ii to-width)

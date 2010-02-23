@@ -85,9 +85,6 @@ these c object."
   (if flush (flush widget))
   t)
 
-(defmethod get-image ((widget <image-widget>))
-  (image-of widget))
-
 (defmethod update-image ((widget <image-widget>))
   "copy from <image> instance to x object in <image-widget> slot."
   (let ((from (image-of widget))        ;<image> instance
