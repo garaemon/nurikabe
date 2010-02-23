@@ -22,12 +22,12 @@
 (let ((geo (nk:make-geometry :vertical :upper
                              :horizontal :lower
                              :parent *win*)))
-(defvar *widget2* (nk:make-widget 'nk:<slide-widget>
-                                  :geometry geo
-                                  :whole-width 1000
-                                  :width 15 :height 185
-                                  :verticalp t
-                                  :parent *win*)))
+  (defvar *widget2* (nk:make-widget 'nk:<slide-widget>
+                                    :geometry geo
+                                    :whole-width 1000
+                                    :width 15 :height 185
+                                    :verticalp t
+                                    :parent *win*)))
 
 (nk::with-x-serialize (*manager*)
   (nk:render-widgets *win*))

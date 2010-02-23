@@ -98,6 +98,9 @@
     (arrange-widgets geo)
     geo))
 
+(defun make-geometry* (&rest args)
+  (apply #'make-geometry args))
+
 (defmethod add-widget ((geo <geometry>) (widget <widget>))
   "add widget to geometry at the tail of widgets list."
   (with-slots (widgets) geo

@@ -16,6 +16,9 @@
    (left-up-position '(0.0 0.0))
    ))
 
+(defclass* <image-viewer-image-widget>
+    (<image-widget>)
+  ())
 
 (defmethod init-widget ((widget <image-viewer-widget>))
   (with-slots (image-widget image
@@ -25,47 +28,53 @@
     (let ((image-width (width-of image))
           (image-height (height-of image)))
       (unless image-widget
-        (setf image-widget (make-widget '<image-widget>
-                                        :lock nil
-                                        :wait-expose nil
-                                        :parent widget
-                                        :x 0 :y 0
-                                        :width (- width slider-size)
-                                        :height (- height slider-size))))
+        (let ((geo (make-geometry :vertical :upper
+                                  :horizontal :upper
+                                  :parent widget)))
+          (setf image-widget (make-widget '<image-viewer-image-widget>
+                                          :lock nil :wait-expose nil
+                                          :parent widget
+                                          :geometry geo
+                                          :width (- width slider-size)
+                                          :height (- height slider-size)))))
       (unless horizontal-slide-widget
-        (setf horizontal-slide-widget
-              (make-widget '<slide-widget>
-                           :lock nil :wait-expose nil
-                           :whole-width image-width
-                           :parent widget
-                           :x 0 :y (- height slider-size)
-                           :update-callback
-                           #'(lambda (x)
-                               (setf (left-up-position-of widget)
-                                     (list x
-                                           (cadr
-                                            (left-up-position-of widget))))
-                               (log-format widget "-> ~A" x)
-                               (render-widget widget))
-                           :width (- width slider-size) :height slider-size
-                           :verticalp nil)))
+        (let ((geo (make-geometry :vertical :lower
+                                  :horizontal :upper
+                                  :parent widget)))
+          (setf horizontal-slide-widget
+                (make-widget '<slide-widget>
+                             :lock nil :wait-expose nil
+                             :whole-width image-width
+                             :parent widget
+                             :geometry geo
+                             :update-callback
+                             #'(lambda (x)
+                                 (setf (left-up-position-of widget)
+                                       (list x
+                                             (cadr
+                                              (left-up-position-of widget))))
+                                 (render-widget widget))
+                             :width (- width slider-size) :height slider-size
+                             :verticalp nil))))
       (unless vertical-slide-widget
-        (setf vertical-slide-widget
-              (make-widget '<slide-widget>
-                           :lock nil :wait-expose nil
-                           :whole-width image-height
-                           :parent widget
-                           :x (- width slider-size) :y 0
-                           :update-callback
-                           #'(lambda (x)
-                               (setf (left-up-position-of widget)
-                                     (list (car
-                                            (left-up-position-of widget))
-                                           x))
-                               (log-format widget "-> ~A" x)
-                               (render-widget widget))
-                           :width slider-size :height (- height slider-size)
-                           :verticalp t)))
+        (let ((geo (make-geometry :vertical :upper
+                                  :horizontal :lower
+                                  :parent widget)))
+          (setf vertical-slide-widget
+                (make-widget '<slide-widget>
+                             :lock nil :wait-expose nil
+                             :whole-width image-height
+                             :parent widget
+                             :geometry geo
+                             :update-callback
+                             #'(lambda (x)
+                                 (setf (left-up-position-of widget)
+                                       (list (car
+                                              (left-up-position-of widget))
+                                             x))
+                                 (render-widget widget))
+                             :width slider-size :height (- height slider-size)
+                             :verticalp t))))
       widget)))
 
 (defmethod update-image-widget ((widget <image-viewer-widget>))
@@ -83,4 +92,34 @@
   (update-image-widget widget)
   (render-widgets widget)
   widget)
+
+(defmethod resize-widget ((widget <image-viewer-widget>)
+                          nw nh ow oh)
+  (with-slots (geometries width height) widget
+    (let ((w-diff (- nw ow))
+          (h-diff (- nh oh)))
+      ;; update width and height
+      (setf width (+ w-diff width) height (+ h-diff height))
+      ;; upate x object
+      (resize widget width height)
+      ;; update image-widget
+      ;;(resize-image-widget widget w-diff h-diff)
+      ;; update geometry and sliders
+      (dolist (g geometries)
+        (arrange-widgets g nw nh ow oh))
+      (render-widgets widget)
+      t)))
+
+(defmethod resize-widget ((widget <image-viewer-image-widget>)
+                          nw nh ow oh)
+  (with-slots (width height) widget
+    (let ((w-diff (- nw ow))
+          (h-diff (- nh oh)))
+      ;; update width and height
+      (setf width (+ w-diff width) height (+ h-diff height))
+      ;; upate x object
+      (resize widget width height)
+      ;; update image objects
+      (rebuild-image widget)
+      widget)))
 

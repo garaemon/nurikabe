@@ -168,23 +168,6 @@
 (defmethod button-release-callback ((widget <slide-slider-widget>) x y)
   (setf (clicked-region-of widget) nil))
 
-;; (defmethod resize-callback ((widget <slide-slider-widget>) rw rh)
-;;   (log-format widget "resize-callback is called at ~A with ~A ~A" widget
-;;               rw rh)
-;;   (with-slots (verticalp width height) widget
-;;     ;; update width and height
-;;     (let ((new-width (if verticalp width (round (* rw width))))
-;;           (new-height (if verticalp (round (* rh height)) height)))
-;;       (setf width new-width height new-height)
-;;       ;; update slide-width
-;;       (let ((r (/ (slider-direction-width widget)
-;;                   (float (whole-width-of widget)))))
-;;         (setf (slider-width-of widget) (* r (slider-direction-width widget))))
-;;       (resize widget width height)
-;;       ;; update ximage and so on
-;;       (rebuild-image widget)
-;;       widget)))
-
 (defmethod motion-notify-callback ((widget <slide-slider-widget>) x y code)
   (when (eq (clicked-region-of widget) :inside)
     ;; only enable when inside clicking
@@ -374,8 +357,3 @@ So this method needs to call arrange-widgets of <geometry> of widget."
                            (+ width diff) height width height))
       widget)))
 
-;; (defmethod resize-callback ((widget <slide-widget>) rw rh)
-;;   (resize-callback (slider-widget-of widget) rw rh)
-;;   (with-slots (width height) widget
-;;     (resize widget (round (* rw width)) (round (* rh height))))
-;;   (arrange-widgets (car (geometries-of widget))))

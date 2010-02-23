@@ -17,10 +17,13 @@
 ;; (nk:draw-line *image* 0 0 1000 1000 :width 8)
 (defvar *image* (nk:make-image-from-file "/home/garaemon/69621.jpg"))
 
-(defvar *widget* (nk:make-widget 'nk::<image-viewer-widget>
-                                 :parent *win*
-                                 :x 0 :y 0 :image *image*
-                                 :width 300 :height 200))
+(let ((geo (nk:make-geometry :vertical :upper
+                             :horizontal :upper
+                             :parent *win*)))
+  (defvar *widget* (nk:make-widget 'nk::<image-viewer-widget>
+                                   :parent *win*
+                                   :geometry geo :image *image*
+                                   :width 300 :height 200)))
 
 (nk:with-x-serialize (*manager*)
   (nk:render-widgets *win*))
