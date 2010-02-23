@@ -29,5 +29,5 @@
                                     :verticalp t
                                     :parent *win*)))
 
-(nk::with-x-serialize (*manager*)
+(nk:with-x-serialize (*manager*)
   (nk:render-widgets *win*))

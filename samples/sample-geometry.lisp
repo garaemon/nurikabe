@@ -66,9 +66,6 @@
                                   #'(lambda ()
                                       (format t "BUTTON PRESSED2!~%"))))
 
-
-
-
 (nk:with-x-serialize (*manager*)
   (nk:render-widgets *win1*)
   (nk:render-widgets *win2*))
