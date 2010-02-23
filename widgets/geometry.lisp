@@ -88,6 +88,14 @@
   "make a geometry from vertical and horizontal policy."
   (if (null (and vertical horizontal))
       (error "You have to specify :vertical and :horizontal keyword"))
+  (if (null (or parent widgets))
+      (error "You have to specify :parent or :widgets"))
+  (when (null parent)
+    ;; estimate parent from widgets
+    (let ((all-parents (mapcar #'parent-of widgets)))
+      (unless (all #'(lambda (x) (eq (car all-parents) x)) (cdr all-parents))
+        (error "widgets have not the same parent in common"))
+      (setq parent (car all-parents))))
   (let ((geo (apply #'make-instance '<geometry>
                     :vertical-policy (make-geometry-policy vertical)
                     :horizontal-policy (make-geometry-policy horizontal)
