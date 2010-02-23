@@ -168,22 +168,22 @@
 (defmethod button-release-callback ((widget <slide-slider-widget>) x y)
   (setf (clicked-region-of widget) nil))
 
-(defmethod resize-callback ((widget <slide-slider-widget>) rw rh)
-  (log-format widget "resize-callback is called at ~A with ~A ~A" widget
-              rw rh)
-  (with-slots (verticalp width height) widget
-    ;; update width and height
-    (let ((new-width (if verticalp width (round (* rw width))))
-          (new-height (if verticalp (round (* rh height)) height)))
-      (setf width new-width height new-height)
-      ;; update slide-width
-      (let ((r (/ (slider-direction-width widget)
-                  (float (whole-width-of widget)))))
-        (setf (slider-width-of widget) (* r (slider-direction-width widget))))
-      (resize widget width height)
-      ;; update ximage and so on
-      (rebuild-image widget)
-      widget)))
+;; (defmethod resize-callback ((widget <slide-slider-widget>) rw rh)
+;;   (log-format widget "resize-callback is called at ~A with ~A ~A" widget
+;;               rw rh)
+;;   (with-slots (verticalp width height) widget
+;;     ;; update width and height
+;;     (let ((new-width (if verticalp width (round (* rw width))))
+;;           (new-height (if verticalp (round (* rh height)) height)))
+;;       (setf width new-width height new-height)
+;;       ;; update slide-width
+;;       (let ((r (/ (slider-direction-width widget)
+;;                   (float (whole-width-of widget)))))
+;;         (setf (slider-width-of widget) (* r (slider-direction-width widget))))
+;;       (resize widget width height)
+;;       ;; update ximage and so on
+;;       (rebuild-image widget)
+;;       widget)))
 
 (defmethod motion-notify-callback ((widget <slide-slider-widget>) x y code)
   (when (eq (clicked-region-of widget) :inside)
@@ -215,6 +215,26 @@
                                 (t v)))
     (if update-callback (funcall update-callback))
     slider-position))
+
+(defmethod resize-widget ((widget <slide-slider-widget>)
+                          new-parent-width new-parent-height
+                          old-parent-width old-parent-height)
+  (with-slots (verticalp width height slider-width whole-width) widget
+    (let* ((diff (if verticalp
+                     (- new-parent-height old-parent-height)
+                     (- new-parent-width old-parent-width)))
+           (new-width (if verticalp width (+ diff width)))
+           (new-height (if verticalp (+ diff height) height)))
+      ;; update width and height
+      (setf width new-width height new-height)
+      ;; update slide-width
+      (let ((r (/ (slider-direction-width widget) (float whole-width))))
+        (setf slider-width (* r (slider-direction-width widget))))
+      ;; resize x object
+      (resize widget width height)
+      ;; update ximage and so on
+      (rebuild-image widget)
+      widget)))
 
 (defmethod min-region-button-press-callback ((widget <slide-slider-widget>)
                                              x y)
@@ -332,8 +352,30 @@
 (defmethod render-widget ((widget <slide-widget>))
   (render-widgets widget))
 
-(defmethod resize-callback ((widget <slide-widget>) rw rh)
-  (resize-callback (slider-widget-of widget) rw rh)
-  (with-slots (width height) widget
-    (resize widget (round (* rw width)) (round (* rh height))))
-  (arrange-widgets (car (geometries-of widget))))
+(defmethod resize-widget ((widget <slide-widget>)
+                          new-parent-width new-parent-height
+                          old-parent-width old-parent-height)
+  "This method is called from <geometry> which includes widget.
+So this method needs to call arrange-widgets of <geometry> of widget."
+  (with-slots (verticalp width height geometries) widget
+    (let ((diff (if verticalp
+                    (- new-parent-height old-parent-height)
+                    (- new-parent-width old-parent-width))))
+      ;; resize widget
+      (resize widget
+              (if verticalp width (+ width diff))
+              (if verticalp (+ height diff) height))
+      ;; third, call arrange-widgets.
+      ;; in arrange-widgets, slide-slider-widget is resized.
+      (if verticalp
+          (arrange-widgets (car geometries)
+                           width (+ height diff) width height)
+          (arrange-widgets (car geometries)
+                           (+ width diff) height width height))
+      widget)))
+
+;; (defmethod resize-callback ((widget <slide-widget>) rw rh)
+;;   (resize-callback (slider-widget-of widget) rw rh)
+;;   (with-slots (width height) widget
+;;     (resize widget (round (* rw width)) (round (* rh height))))
+;;   (arrange-widgets (car (geometries-of widget))))

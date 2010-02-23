@@ -108,21 +108,39 @@
   (with-slots (widgets) geo
     (setf widgets (append widgets wds))))
 
-(defmethod arrange-widgets ((geo <geometry>))
+(defmethod arrange-widgets ((geo <geometry>)
+                            &optional
+                            new-parent-width new-parent-height
+                            old-parent-width old-parent-height)
   "Arrange positions of widgets in geometry.
 In this method, <geometry> calls arrange-widgets-policy method
- of vertical and horizontal policy."
+of vertical and horizontal policy.
+
+First, resize widgets by calling resize-widget
+if new and old parent width and height is specified.
+Second, move widgets by calling arrange-widgets-policy and move method."
   (with-slots (widgets vertical-policy horizontal-policy parent) geo
     (when widgets
       (with-slots (width height) parent
+        ;; resize phase
+        ;; resizing is defined in each widget.
+        (when (and new-parent-width new-parent-height
+                   old-parent-width old-parent-height)
+          (dolist (w widgets)
+            (resize-widget w new-parent-width new-parent-height
+                           old-parent-width old-parent-height)))
+        ;; move phase
         (let ((xs (arrange-widgets-policy horizontal-policy
                                           (mapcar #'width-of widgets)
                                           width))
               (ys (arrange-widgets-policy vertical-policy
                                           (mapcar #'height-of widgets)
                                           height)))
-          (mapcar #'(lambda (w x y) (move w x y)) widgets xs ys)
-          ;; need flush?
+          (iterate:iter
+            (iterate:for w in widgets)
+            (iterate:for x in xs)
+            (iterate:for y in ys)
+            (move w x y))
           t)))))
 
 (defmethod arrange-widgets-policy ((policy <geometry-policy>) widgets width)

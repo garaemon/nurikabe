@@ -50,7 +50,7 @@ any contents in <window> is must be realized through <widget>."))
    :height (height-of window)
    :exposurep t))
 
-(defmethod add-geometry ((window <window>) (geo <geometry>))
+(defmethod add-geometry ((window <window>) geo)
   (with-slots (geometries) window
     (setf geometries (append geometries (list geo)))))
 
@@ -178,10 +178,6 @@ X server."
   (declare (ignore win x y width height count))
   t)
 
-(defmethod resize-callback ((win <window-core>) width height)
-  (declare (ignore win width height))
-  t)
-
 (defmethod button-press-callback ((win <window-core>) x y)
   (declare (ignore win x y))
   t)
@@ -212,6 +208,7 @@ X server."
   t)
 
 (defmethod exposure-callback ((win <window>) x y width height count)
+  "exposure callback of <window> is defined as alias method to render-widgets."
   (render-widgets win)
   t)
 
@@ -219,26 +216,20 @@ X server."
   "configure-notify-callback is called when resize event is occurred.
 In this method, a window manages geometry relation of widgets.
 
-First of all, window calls resize-callback of widgets in its geometry, 
-and the arguments of resize-callback is RATIO of change of width and height.
-Second, window calls arrange-widgets for all geometries."
+Window calls resize-callback of widgets in its geometry, 
+and the arguments of resize-callback is RATIO of change of width and height."
   ;; width and height changed to w and h
   ;; geometry-ed widgets are rearranged by geometry.
   ;; update width and height
   (with-slots (width height geometries) win
-    (let ((rw (/ w width))
-          (rh (/ h height)))
+    (let ((old-w width)
+          (old-h height))
+      ;; update width and height
       (setf width w)
       (setf height h)
       (dolist (g geometries)
-        ;; call resize-callback for all widgets in g
-        (with-slots (widgets) g
-          (dolist (w widgets)
-            (log-format win "now calling resize-callback of ~A" w)
-            (resize-callback w rw rh)))
-        ;; call arrange-widgets
-        (arrange-widgets g))
-      t)))
+        (arrange-widgets g w h old-w old-h)))
+    t))
 
 (defmethod add-window ((manager <manager>) (window <window>))
   "add a window to manager"

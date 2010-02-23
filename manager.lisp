@@ -47,7 +47,7 @@ and open X11 display."
   (unless *manager*
     (setf *manager* (make-instance '<manager> :loggingp loggingp :host host))
     (with-slots (display root-window root-screen logger xevent event-thread)
-        manager
+        *manager*
     (setf display (xlib:open-display :host host))
     (setf root-window (xlib:default-root-window :display display))
     (setf root-screen (xlib:default-screen :display display))
@@ -127,10 +127,6 @@ If loggingp slot of manager is nil, manager do nothing when log-format callled."
                          xlib::width xlib::height
                          xlib::count))
   
-  (defmanager-event xlib:+resize-request+
-      win (xlib::width xlib::height xlib::window)
-      (resize-callback win xlib::width xlib::height))
-  
   (defmanager-event xlib:+motion-notify+
       win (xlib::x xlib::y xlib::window xlib::x_root xlib::y_root)
       (motion-notify-callback win xlib::x xlib::y nil))
@@ -205,7 +201,7 @@ flow of event-loop is:
           (proc-event manager)
           (dispatch-and-call-event manager event))
         (run-nop-callbacks manager)
-        (run-thread-hook manager)
+        (run-thread-hooks manager)
         (if call-event-p (flush manager))))
     (sleep 0.01)                        ;sleep for not monopoly thread
     ))
@@ -214,12 +210,9 @@ flow of event-loop is:
   "sending flush message to X Server."
   (xlib:flush :display (display-of *manager*)))
 
-;; nurikabeで共通に使われるeventのマスクを
-;; 返す
 (defun default-event-mask ()
   "returns default event mask value used in nurikabe."
   (logior xlib:+exposure-mask+
-          ;;xlib:+resize-redirect-mask+
           xlib:+button-press-mask+
           xlib:+button-release-mask+
           xlib:+button1-motion-mask+

@@ -89,6 +89,14 @@
         ;; TODO: finalizer
         widget))))
 
+(defmethod resize-widget ((widget <widget>)
+                          new-parent-width new-parent-height
+                          old-parent-width old-parent-height)
+  "resize-widget is called in arrange-widgets of geometry class."
+  (declare (ignore widget new-parent-height new-parent-width
+                   old-parent-width old-parent-height))
+  t)
+
 (defmethod debug-mode ((widget <widget>))
   (setf (debugp-of widget) t))
 
