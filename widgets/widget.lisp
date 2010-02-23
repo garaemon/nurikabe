@@ -79,7 +79,8 @@
         (init-widget widget)
         ;; if geometry is not an object of <geometry>
         (if (not (chimi:derivedp geometry '<geometry>))
-            (setq geometry (make-geometry* geometry)))
+            (setq geometry
+                  (make-geometry* (append `(:parent ,parent) geometry))))
         ;; if geometry is specified, we need to call add-widget here
         (when geometry
           (add-widget geometry widget)

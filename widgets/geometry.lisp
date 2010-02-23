@@ -106,7 +106,7 @@
     (arrange-widgets geo)
     geo))
 
-(defun make-geometry* (&rest args)
+(defun make-geometry* (args)
   (apply #'make-geometry args))
 
 (defmethod add-widget ((geo <geometry>) (widget <widget>))
