@@ -447,3 +447,5 @@
   (let ((array (cl-wand:read-image fname)))
     (make-image :content array)))
 
+(defmethod write-to-file ((image <image>) fname)
+  (cl-wand:write-image (content-of image) fname))

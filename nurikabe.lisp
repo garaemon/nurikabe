@@ -41,6 +41,7 @@
    #:draw-rectangle
    #:clear-image
    #:make-image-from-file
+   #:write-to-file
    ;; widget.lisp
    #:<widget>
    #:make-widget
