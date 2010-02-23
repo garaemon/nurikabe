@@ -444,8 +444,10 @@
 
 ;; file IO
 (defun make-image-from-file (fname)
-  (let ((array (cl-wand:read-image fname)))
-    (make-image :content array)))
+  (if (probe-file fname)
+      (let ((array (cl-wand:read-image fname)))
+        (make-image :content array))
+      (error "there is no file at ~A" fname)))
 
 (defmethod write-to-file ((image <image>) fname)
   (cl-wand:write-image (content-of image) fname))
