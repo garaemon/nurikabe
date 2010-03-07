@@ -1,7 +1,8 @@
 (defsystem nurikabe
     :depends-on (chimi cl-vectors
 		 cl-aa-misc cl-vectors zpb-ttf cl-paths-ttf iterate
-                 cffi clyax nurarihyon alexandria trivial-garbage cl-wand)
+                 cffi clyax nurarihyon alexandria trivial-garbage
+		 #-darwin cl-wand)
     :version "0.1"
     :components ((:module
                   "base"

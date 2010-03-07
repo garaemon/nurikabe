@@ -26,13 +26,11 @@
 (defmethod add-widget ((widget <widget>) (w <widget>))
   (add-widget (parent-of widget) w))
 
-(defun make-widget (class
-                    &rest
-                    args                ;args pass to the initializer
+(defun make-widget (class &rest args    ;args pass to the initializer
                     &key
                     (parent nil)        ;window
                     (x nil) (y nil)     ;position in window
-                    (geometry nil)
+                    (geometry nil)      ;geometry
                     (width nil) (height nil)
                     (depth 24)
                     (map t)
@@ -77,8 +75,10 @@
         (add-widget parent widget)
         (add-widget manager widget)
         (init-widget widget)
-        ;; if geometry is not an object of <geometry>
-        (if (not (chimi:derivedp geometry '<geometry>))
+        ;; if geometry is not an object of <geometry>,
+        ;; we need to call make-geometry*
+        (if (and (not (null geometry))
+                 (not (chimi:derivedp geometry '<geometry>)))
             (setq geometry
                   (make-geometry* (append `(:parent ,parent) geometry))))
         ;; if geometry is specified, we need to call add-widget here

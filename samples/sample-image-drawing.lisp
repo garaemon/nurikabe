@@ -6,7 +6,7 @@
 
 (require :nurikabe)
 
-(defvar *manager* (nk:init-gui :loggingp t :threadingp t))
+(defvar *manager* (nk:init-gui :loggingp t :threadingp nil))
 (defvar *win* (nk:make-window :width 300 :height 200
                               :background :white
                               :name "test window"))

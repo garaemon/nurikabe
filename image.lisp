@@ -442,11 +442,12 @@
     to))
 
 ;; file IO
+#-darwin
 (defun make-image-from-file (fname)
   (if (probe-file fname)
       (let ((array (cl-wand:read-image fname)))
         (make-image :content array))
       (error "there is no file at ~A" fname)))
-
+#-darwin
 (defmethod write-to-file ((image <image>) fname)
   (cl-wand:write-image (content-of image) fname))
